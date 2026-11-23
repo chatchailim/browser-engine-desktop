@@ -64,7 +64,7 @@ pre{background:var(--border,#eee);border-radius:8px;padding:12px;overflow-x:auto
 <tr><td><b>Planner</b></td><td>AI ตัวคิด — แตกโจทย์เป็นขั้นตอน (วิ่งบน DGX)</td></tr>
 <tr><td><b>Step / Subtask</b></td><td>ขั้นตอนย่อย 1 ขั้น เช่น "คลิกหมวด Travel"</td></tr>
 <tr><td><b>Manifest</b></td><td>สมุดทะเบียนทุกคำสั่งที่ AI เคยทำ — อ่านย้อนได้</td></tr>
-<tr><td><b>Keysign / Chain</b></td><td>ลายเซ็นดิจิทัลประจำคำสั่งโยงเป็นห่วง — แก้สมุดย้อนหลัง = ห่วงขาด = จับได้</td></tr>
+<tr><td><b>Chain-sign (โซ่ลายเซ็น)</b></td><td>ลายเซ็นดิจิทัลประจำคำสั่งโยงเป็นห่วง — แก้สมุดย้อนหลัง = ห่วงขาด = จับได้</td></tr>
 <tr><td><b>Recipe cache</b></td><td>ระบบจำ "สูตรทำงานสำเร็จแล้ว" → งานเดิมเร็วขึ้นมาก (ไม่จำคำตอบ!)</td></tr>
 <tr><td><b>Token</b></td><td>บัตรผ่านประตู 64 ตัวอักษร — 3 ระดับ: admin &gt; operator &gt; viewer</td></tr>
 <tr><td><b>Sandbox / Rollback</b></td><td>ห้องทดลองกันพัง + ปุ่ม "กลับเหมือนเดิม" ของไฟล์</td></tr>
@@ -104,7 +104,7 @@ Goal: หาราคาเล่มแรกในหมวด Travel
 <p>กด <b>⏹ หยุด</b> ใต้งานที่วิ่ง (หรือ POST <code class="mono">/api/task-cancel</code>) — AI จบที่ขั้นปัจจุบันโดยไม่เดินหน้า — สั่งงานใหม่ได้ทันที</p>
 <h3>ตรวจย้อน AI ทำอะไรไปแล้ว</h3>
 <pre>type data\action-manifest\app-YYYY-MM-DD.jsonl   (ทุกคำสั่ง+ลายเซ็น)
-python -c "from service import keysign; import glob; print(keysign.verify_chain(glob.glob('data/action-manifest/app-*.jsonl')[-1]))"
+python -c "from service import chain_sign; import glob; print(chain_sign.verify_chain(glob.glob('data/action-manifest/app-*.jsonl')[-1]))"
 → {"valid": true} = ระเบียนพร้อมรอยเท้าสมบูรณ์ · valid false = มีการแก้ระเบียน — รายงานทันที</pre>
 
 <h2 id="c3">บทที่ 3 — การไหลของระบบ (แผนภาพ)</h2>
@@ -121,7 +121,7 @@ flowchart TB
   V -- "2-3 อันตราย" --> A["⏸ popup อนุมัติ<br/>ไม่กด = ไม่ทำ"]
   A -- "อนุมัติ" --> E
   SH --> SB["📦 Sandbox<br/>ถ่ายรูปไฟล์ก่อน-หลัง + กู้คืนได้"]
-  E --> M["📜 Manifest + 🔐 Keysign chain<br/>ทุกคำสั่งเซ็น — แก้ย้อนจับได้"]
+  E --> M["📜 Manifest + 🔐 Chain-sign<br/>ทุกคำสั่งเซ็น — แก้ย้อนจับได้"]
   E -- "สำเร็จ" --> RC["💾 จำสูตร → งานถัดไปเร็ว 2–4×"]
   E -- "ล้ม" --> RC2["🔥 ลืมสูตร → กันสูตรพังใช้ซ้ำ"]
   M --> TL["💾 Tasklog — restart แล้วงานไม่หาย"]
@@ -140,7 +140,7 @@ flowchart TB
 <tr><th>ธง (config.json)</th><th>ค่าเริ่ม Node</th><th>เปิดแล้ว</th></tr>
 <tr><td>recipe_cache_enabled</td><td class="ok">on</td><td>จำสูตร เร็ว 2–4×</td></tr>
 <tr><td>roles_enabled</td><td class="ok">on</td><td>สิทธิ์ 3 ระดับ</td></tr>
-<tr><td>keysign_policy</td><td class="warn">audit</td><td>เซ็นทุกคำสั่ง — enforce = ไม่มีกุญแจไม่วิ่ง</td></tr>
+<tr><td>chain_sign_policy</td><td class="warn">audit</td><td>เซ็นทุกคำสั่ง — enforce = ไม่มีกุญแจไม่วิ่ง</td></tr>
 <tr><td>shell_execution_enabled</td><td class="bad">off</td><td>AI รันคำสั่งระบบ (ปลดผ่าน Config Approval เท่านั้น)</td></tr>
 <tr><td>shell_elevated_allowed</td><td class="bad">off</td><td>คำสั่ง admin — <b>UAC ขึ้นให้คนกดเสมอ</b></td></tr>
 <tr><td>shell_sandbox_mode</td><td class="ok">on</td><td>ภาพถ่ายไฟล์ + กู้คืนรอบคำสั่ง</td></tr>

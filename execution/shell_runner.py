@@ -1,9 +1,9 @@
-"""Shell/Command Runner (WO-018 R1 + step2 sandbox/keysign) — รันคำสั่ง OS จริงจาก engine.
+"""Shell/Command Runner (WO-018 R1 + step2 sandbox/chain-sign) — รันคำสั่ง OS จริงจาก engine.
 
 กฎ (ตามใบงาน/ธรรมนูญ + ความจริงของ Windows):
 - CONFIG-GATED: ธง shell_execution_enabled=false (ค่าเริ่มต้น) → ปฏิเสธทุกคำสั่ง
 - sandbox_mode (ธงใหม่): on = รอบคำสั่งมีสแนปช็อต+stash+diff+กู้คืนได้ทาง /api/shell-rollback
-- keysign_policy: off/audit/enforce — เซ็น intent ทุกคำสั่ง (chain) — enforce: ไม่มีกุญแจ=ปฏิเสธ
+- chain_sign_policy (เดิม keysign_policy): off/audit/enforce — เซ็น intent ทุกคำสั่ง (chain) — enforce: ไม่มีกุญแจ=ปฏิเสธ
 - elevated: Start-Process -Verb RunAs — UAC ปรากฏให้ผู้ใช้กดเอง
 """
 import json
@@ -64,7 +64,7 @@ def _redact(text: str) -> str:
 
 
 class Manifest:
-    """R4: บันทึกทุก action ลง app-YYYYMMDD.jsonl พร้อม signature ว่างไว้รับ keysign ภายหลัง."""
+    """R4: บันทึกทุก action ลง app-YYYYMMDD.jsonl พร้อม signature ว่างไว้รับ chain-sign ภายหลัง."""
 
     def __init__(self, engine_version="0.4-wo018"):
         MANIFEST_DIR.mkdir(parents=True, exist_ok=True)
@@ -83,7 +83,7 @@ class Manifest:
             "result": result or {},
             "machine": os.environ.get("COMPUTERNAME", "unknown"),
             "engine_version": self.engine_version,
-            "signature": None,  # keysign-ready: WO-ถัดไปเซ็นทับฟิลด์นี้
+            "signature": None,  # chain-sign-ready: เซ็นทับฟิลด์นี้ตามนโยบาย
         }
         try:
             with self.path.open("a", encoding="utf-8") as f:
@@ -101,10 +101,13 @@ class ShellRunner:
         self.enabled = bool(cfg.get("shell_execution_enabled", False))
         self.elevated_allowed = bool(cfg.get("shell_elevated_allowed", False))
         self.timeout_s = int(cfg.get("shell_timeout_seconds", 600))
-        # step2: sandbox เฉพาะ cwd ที่อยู่ใต้ shell_sandbox_dir เท่านั้น + keysign policy
+        # step2: sandbox เฉพาะ cwd ที่อยู่ใต้ shell_sandbox_dir เท่านั้น + chain-sign policy
         self.sandbox_mode = bool(cfg.get("shell_sandbox_mode", False))
         self.sandbox_dir = pathlib.Path(cfg.get("shell_sandbox_dir", str(APP / "data" / "shell-sandbox")))
-        self.keysign_policy = str(cfg.get("keysign_policy", "off")).lower()
+        from service import chain_sign as _cs
+        self.chain_sign_policy = _cs.policy_from_cfg(cfg)  # T1: chain_sign_policy ก่อน แล้วรับ keysign_policy เดิม
+        self.keysign_policy = self.chain_sign_policy  # ชื่อเดิม — คงไว้ให้โค้ดเก่าอ่านได้
+        self._cfg = cfg  # T2: นโยบาย SPADA KeySign (ฮาร์ดแวร์) อ่านจาก config ชุดเดียวกัน
         self.manifest = manifest or Manifest()
         self._sandbox = None
         self._snapshot_before = None
@@ -160,10 +163,19 @@ class ShellRunner:
             return ShellResult(False, None, "", "", 0, command, cwd or ".", "shell_execution_disabled")
         if elevated and not self.elevated_allowed:
             return ShellResult(False, None, "", "", 0, command, cwd or ".", "shell_elevated_not_allowed")
-        if self.keysign_policy == "enforce":
-            from service import keysign
-            if not keysign.key_available():
-                return ShellResult(False, None, "", "", 0, command, cwd or ".", "keysign_enforce_no_key")
+        if self.chain_sign_policy == "enforce":
+            from service import chain_sign
+            if not chain_sign.key_available():
+                return ShellResult(False, None, "", "", 0, command, cwd or ".", "chain_sign_enforce_no_key")
+        # T2: SPADA KeySign ฮาร์ดแวร์ — คนต้องกดปุ่มบนอุปกรณ์ก่อนคำสั่งนี้วิ่ง (ลายเซ็นผูกกับคำสั่ง+cwd+elevated เต็มข้อความ)
+        from service import spada_keysign as _sk
+        try:
+            hw = _sk.sign_if_required(self._cfg, "shell", {"purpose": "bed.shell-run/v1", "command": command,
+                                                            "cwd": cwd or "", "elevated": bool(elevated)})
+        except _sk.KeySignError as e:
+            return ShellResult(False, None, "", "", 0, command, cwd or ".", f"spada_keysign_denied:{e.code}")
+        if hw is not None:
+            detail["spada_keysign"] = hw  # อยู่ใน base ที่ chain-sign เซ็นทับ — แก้ย้อนหลังจับได้
 
         # step2: แซนด์บ็อกซ์ครอบจริงเมื่อ cwd อยู่ใต้ shell_sandbox_dir (ไม่อยู่ = รันปกติ ไม่ snapshot + กำกับใน manifest)
         sandboxed = False
@@ -209,33 +221,33 @@ class ShellRunner:
         # step2: sandbox diff หลังรัน (บันทึกในผล Manifest + เก็บบริบท rollback ให้ /api/shell-rollback)
         # step2: อ่าน prev signature "ก่อน record" — บรรทัดตัวเองยังไม่ถูกเขียน (prev = ลายเซ็นจริงล่าสุดของไฟล์ ไม่ใช่บรรทัดตัวเองที่ยังว่าง)
         # (บั๊กเดิมจาก TestSpec คำสั่ง verify_chain จับ: เซ็นหลัง record → prev=GENESIS ผิด → โซ่หัก ed25519_mismatch)
-        prev_sig = self._last_signature_from_file() if self.keysign_policy in ("audit", "enforce") else None
+        prev_sig = self._last_signature_from_file() if self.chain_sign_policy in ("audit", "enforce") else None
         entry = self.manifest.record("ai", "shell_run", detail, res)
         if sandboxed:
             try:
                 self._exit_sandbox(entry)
             except Exception:
                 pass
-        # step2: keysign — ตามนโยบาย: off=ไม่เซ็น / audit|enforce=เซ็น intent (chain กับรายการก่อน)
+        # step2: chain-sign — ตามนโยบาย: off=ไม่เซ็น / audit|enforce=เซ็น intent (chain กับรายการก่อน)
         sig = None
-        if self.keysign_policy in ("audit", "enforce"):
+        if self.chain_sign_policy in ("audit", "enforce"):
             try:
-                from service import keysign
+                from service import chain_sign
                 prev = prev_sig or "GENESIS"  # จากการอ่านก่อน record (ตัวเอียงใช้ตัวเองไม่พัน) — chain ต่อเนื่องจริง
                 base = {k: entry.get(k) for k in ("seq", "timestamp", "source", "kind", "detail")}
                 try:  # ชั้นใหม่: Ed25519 (กุญแจอสมมาตร — ตรวจข้ามเครื่องด้วย .pub)
-                    priv, _pub = keysign.ensure_keypair()
-                    sig = keysign.sign_entry_asym(base, priv, prev)
+                    priv, _pub = chain_sign.ensure_keypair()
+                    sig = chain_sign.sign_entry_asym(base, priv, prev)
                 except Exception:
                     sig = None
                 if sig is None:  # ชั้นสำรอง: HMAC ใบเดิม
-                    sig = keysign.sign_entry(base, keysign.ensure_key(), prev)
+                    sig = chain_sign.sign_entry(base, chain_sign.ensure_key(), prev)
                 self.manifest.last_signature = sig
             except Exception:
                 sig = None
-                if self.keysign_policy == "enforce":
+                if self.chain_sign_policy == "enforce":
                     return ShellResult(False, exit_code, _redact(stdout)[-4000:], _redact(stderr)[-2000:],
-                                       duration_ms, command, cwd or str(pathlib.Path.cwd()), "keysign_failed")
+                                       duration_ms, command, cwd or str(pathlib.Path.cwd()), "chain_sign_failed")
         entry["signature"] = sig
         try:  # เขียนทับบรรทัดสุดท้ายของ manifest ด้วย entry ฉบับเต็ม (result.sandbox + signature ครบหน้าเดียว)
             lines = self.manifest.path.read_text(encoding="utf-8").splitlines()

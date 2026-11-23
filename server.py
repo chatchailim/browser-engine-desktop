@@ -354,8 +354,10 @@ class InteractiveHandler(BaseHTTPRequestHandler):
             vllm_ok = False
             vllm_msg = "พร้อมใช้งาน (vLLM online)"
             try:
-                k = get_vllm_key()
-                url = CFG.get("vllm_url", "http://192.168.1.108/vllm/v1").rstrip("/")
+                from models.client import planner_route
+                _route = planner_route()  # T3: ตรวจทางเดียวกับที่ Planner ใช้จริง (gateway หรือ vLLM ตรง)
+                k = _route["key"]
+                url = _route["url"]
                 req = urllib.request.Request(f"{url}/models", headers={"Authorization": f"Bearer {k}"})
                 with urllib.request.urlopen(req, timeout=2) as r:
                     if r.status == 200:
@@ -371,6 +373,7 @@ class InteractiveHandler(BaseHTTPRequestHandler):
                 "vllm_ready": vllm_ok,
                 "vllm_message": vllm_msg if not vllm_ok else "พร้อมใช้งาน (vLLM online)",
                 "vllm_url": CFG.get("vllm_url"),
+                "planner_route": "ai-host-gateway" if CFG.get("planner_gateway_url") else "direct",
                 "model": CFG.get("model", "Qwen3.8-27B"),
                 "channel": CFG.get("browser_channel", "chrome"),
                 "active_task_id": ACTIVE_TASK_ID,
@@ -411,10 +414,11 @@ class InteractiveHandler(BaseHTTPRequestHandler):
 
         # WO-019 C1 UI-05: รายการไฟล์ manifest ที่ตรวจย้อนได้ (shell + desktop input)
         if self.path.startswith("/api/audit/list"):
-            out = {"shell": [], "desktop_input": [], "keysign_policy": None}
+            out = {"shell": [], "desktop_input": [], "chain_sign_policy": None, "keysign_policy": None}
             try:
-                from service import keysign as _ks
-                out["keysign_policy"] = _ks.policy()
+                from service import chain_sign as _ks
+                out["chain_sign_policy"] = _ks.policy()
+                out["keysign_policy"] = out["chain_sign_policy"]  # ชื่อเดิม (เลิกใช้)
                 out["pubkey_head"] = _ks.pubkey_hex()[:16]
             except Exception:
                 pass
@@ -461,7 +465,7 @@ class InteractiveHandler(BaseHTTPRequestHandler):
             v = None
             if verify:
                 try:
-                    from service import keysign as _ks
+                    from service import chain_sign as _ks
                     v = _ks.verify_chain(str(p))
                 except Exception as e:
                     v = {"exists": True, "error": str(e)[:100]}
@@ -531,7 +535,13 @@ class InteractiveHandler(BaseHTTPRequestHandler):
                 task_id, step_str = parts[0], parts[1]
                 try:
                     step_num = int(step_str)
-                    ok = approval_manager.approve(task_id, step_num)
+                    from service import spada_keysign as _sk
+                    try:
+                        ok = approval_manager.approve(task_id, step_num)
+                    except _sk.KeySignError as e:
+                        # T2: ต้องมีลายเซ็นจาก SPADA KeySign — ไม่ผ่าน = ยังไม่อนุมัติ (คำขอยังรออยู่)
+                        self._send_json({"error": "spada_keysign_required", "code": e.code}, 403)
+                        return
                     if ok:
                         self._send_json({"status": "approved", "task_id": task_id, "step": step_num})
                     else:

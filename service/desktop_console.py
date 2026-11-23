@@ -11,7 +11,24 @@ APP = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(APP))
 from execution.guarded_desktop import GuardedDesktopSession, InputDenied
 
-CONTROL = APP.parents[2] / "coordination/codex-anti/control.json"
+
+def _control_path() -> pathlib.Path:
+    """control.json ของ coordination — env BED_COORDINATION_DIR ก่อน แล้วไล่หาโฟลเดอร์ coordination ขึ้นไป.
+
+    รองรับทั้ง layout เดิม (ai-platform-kit/apps/browser-engine-desktop) และ repo แยก (browser-engine-desktop)
+    — ของเดิม APP.parents[2] ใช้ได้เฉพาะ layout เดิม และพังด้วย IndexError เมื่อแยก repo
+    """
+    import os
+    env = os.environ.get("BED_COORDINATION_DIR")
+    if env:
+        return pathlib.Path(env) / "codex-anti/control.json"
+    for parent in APP.parents:
+        if (parent / "coordination").is_dir():
+            return parent / "coordination/codex-anti/control.json"
+    return APP.parent / "coordination/codex-anti/control.json"
+
+
+CONTROL = _control_path()
 STOP = APP / "service/DESKTOP-STOP"
 
 

@@ -11,7 +11,7 @@
 #  3) เตรียมโฟลเดอร์เป้าหมาย + copy โค้ดแอป (ยกเว้น data/, .git, __pycache__, *.log)
 #  4) แปลง Config → config.json ของแอป (featureFlag UPPER_SNAKE → snake_case + constants)
 #  5) venv + pip install (จาก requirements ที่ตรวจแล้ว)
-#  6) สร้างของประจำเครื่อง: machine token (สุ่ม 64 hex) + keysign keypair (Ed25519)— ไม่พรินต์ค่าออกจอ (บอกพาธเท่านั้น)
+#  6) สร้างของประจำเครื่อง: machine token (สุ่ม 64 hex) + chain-sign keypair (Ed25519)— ไม่พรินต์ค่าออกจอ (บอกพาธเท่านั้น)
 #  7) Selftest: เทสต์ย่อ 10 ข้อ + ปลุก server + GET /api/status → 200 = "ติดตั้งเสร็จสมบูรณ์"
 param(
     [Parameter(Mandatory=$true)][string]$ConfigPath,
@@ -85,7 +85,8 @@ Step 4 "แปลง Config → config.json (แผนที่ทางกา�
 $map = @{
     RECIPE_CACHE_ENABLED      = "recipe_cache_enabled"
     ROLES_ENABLED             = "roles_enabled"
-    KEYSIGN_POLICY            = "keysign_policy"
+    CHAIN_SIGN_POLICY         = "chain_sign_policy"
+    KEYSIGN_POLICY            = "chain_sign_policy"
     SHELL_EXECUTION_ENABLED   = "shell_execution_enabled"
     SHELL_ELEVATED_ALLOWED    = "shell_elevated_allowed"
     SHELL_SANDBOX_MODE        = "shell_sandbox_mode"
@@ -119,7 +120,7 @@ $appCfg.Remove("desktop_autonomy_allowed_apps") | Out-Null
 $cfgOut = Join-Path $TargetDir "config.json"
 $appCfg | ConvertTo-Json -Depth 6 | Set-Content $cfgOut -Encoding UTF8
 Ok "config.json เขียนที่ $cfgOut"
-if ($appCfg["shell_execution_enabled"] -eq $true) { Warn "Node นี้เปิด shell ให้ AI — ตรวจ Allowlist/ธง keysign อีกครั้ง (ข้อเสนอ §2 แนะปิด)" }
+if ($appCfg["shell_execution_enabled"] -eq $true) { Warn "Node นี้เปิด shell ให้ AI — ตรวจ Allowlist/ธง chain-sign อีกครั้ง (ข้อเสนอ §2 แนะปิด)" }
 
 # ---------- 5) venv + install ----------
 Step 5 "สร้าง venv + ติดตั้งแพ็กเกจ"
@@ -132,7 +133,7 @@ $deps = @("requests", "cryptography", "jsonschema")
 Ok "venv + แพ็กเกจครบ ($($deps -join ', '))"
 
 # ---------- 6) ของประจำเครื่อง ----------
-Step 6 "สร้าง machine token + keysign keypair (ไม่ปรินต์ค่าออกจอ)"
+Step 6 "สร้าง machine token + chain-sign keypair (ไม่ปรินต์ค่าออกจอ)"
 $secDir = Join-Path $env:USERPROFILE ".myai-harness"
 New-Item -ItemType Directory -Force -Path $secDir | Out-Null
 $tokFile = Join-Path $secDir "token"
@@ -145,9 +146,9 @@ if (Test-Path $tokFile) {
 & icacls $tokFile /inheritance:r /grant:r "$($env:USERNAME):(R,W)" | Out-Null
 $keyDir = Join-Path $TargetDir "data\keysign"
 New-Item -ItemType Directory -Force -Path $keyDir | Out-Null
-& $pyExe -c "import sys; sys.path.insert(0,r'$TargetDir'); sys.path.insert(0,r'$TargetDir\execution'); from service import keysign; priv,pub=keysign.ensure_keypair(); k=keysign.ensure_key(); print('OK', len(pub))" | Out-Null
-if ($LASTEXITCODE -ne 0) { Die "สร้าง keysign keypair ไม่สำเร็จ" }
-Ok "keysign keypair + HMAC key → $keyDir (pub แชร์เข้าระเบียนได้ · key เก็บสงวน)"
+& $pyExe -c "import sys; sys.path.insert(0,r'$TargetDir'); sys.path.insert(0,r'$TargetDir\execution'); from service import chain_sign; priv,pub=chain_sign.ensure_keypair(); k=chain_sign.ensure_key(); print('OK', len(pub))" | Out-Null
+if ($LASTEXITCODE -ne 0) { Die "สร้าง chain-sign keypair ไม่สำเร็จ" }
+Ok "chain-sign keypair + HMAC key → $keyDir (pub แชร์เข้าระเบียนได้ · key เก็บสงวน)"
 
 # ---------- 7) Selftest ----------
 Step 7 "Selftest — ทดสอบ 10 ข้อ + ปลุก server + สถานะสด"

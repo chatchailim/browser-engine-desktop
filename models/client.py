@@ -37,6 +37,28 @@ def get_vllm_key() -> str:
     return os.environ.get("VLLM_KEY", "")
 
 
+class PlannerGatewayError(RuntimeError):
+    """ตั้งให้ Planner ผ่าน ai-host-gateway แล้ว แต่ไม่มี key ของเครื่องมือนี้ — ไม่ถอยไปเรียก DGX ตรง (fail-closed)."""
+
+
+def planner_route(cfg: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """T3 (2026-11-23): Planner ผ่าน SPADA ai-host-gateway เมื่อตั้ง planner_gateway_url — Vision/ตัววางแผนเล็กไม่เกี่ยว.
+
+    gateway ออก key ให้ "เครื่องมือนี้" แยกจาก node (เพิกถอนได้ · มีโควตา · ไม่ log ข้อความ — ADR 0027)
+    คืน {"via_gateway", "url", "key"} · ผ่าน gateway = ไม่มี fallback ไป ai_endpoints หรือ vllm_url ตรง
+    """
+    c = CFG if cfg is None else cfg
+    gw = str(c.get("planner_gateway_url") or "").strip().rstrip("/")
+    if not gw:
+        return {"via_gateway": False, "url": str(c.get("vllm_url", "http://192.168.1.108/vllm/v1")).rstrip("/"),
+                "key": get_vllm_key()}
+    kp = str(c.get("planner_gateway_key_path") or "").strip()
+    key = ""
+    if kp and pathlib.Path(kp).is_file():
+        key = pathlib.Path(kp).read_text(encoding="utf-8").strip()
+    return {"via_gateway": True, "url": gw, "key": key}
+
+
 class DGXVllmClient:
     def __init__(
         self,
@@ -44,9 +66,11 @@ class DGXVllmClient:
         model: Optional[str] = None,
         default_timeout: Optional[float] = None
     ):
-        self.base_url = (base_url or CFG.get("vllm_url", "http://192.168.1.108/vllm/v1")).rstrip("/")
+        route = planner_route()
+        self.via_gateway = route["via_gateway"] and base_url is None
+        self.base_url = (base_url or route["url"]).rstrip("/")
         self.model = model or CFG.get("model", "Qwen3.8-27B")
-        self.api_key = get_vllm_key()
+        self.api_key = route["key"] if self.via_gateway else get_vllm_key()
         self.default_timeout = default_timeout if default_timeout is not None else float(CFG.get("planner_timeout_seconds", 90))
 
     def chat_completion(
@@ -73,13 +97,18 @@ class DGXVllmClient:
         if response_format:
             payload["response_format"] = response_format
 
+        if self.via_gateway:
+            if not self.api_key:
+                raise PlannerGatewayError("planner_gateway_key_missing: ตั้ง planner_gateway_key_path ให้ชี้ไฟล์ key ที่ gateway ออกให้")
+            if "response_format" in payload:
+                raise ValueError("ai-host-gateway ไม่รับ response_format — ใช้ข้อความสั่งให้ตอบ JSON แทน")
         data = json.dumps(payload).encode("utf-8")
         call_timeout = float(timeout if timeout is not None else self.default_timeout)
 
         # WO-019 M4: ai_endpoints (สำรองหลายสมอง) — ตัวหลักก่อน, เจอ timeout/conn error = ลอง endpoint ถัดไป
         # กติกา: HTTP error (key/โมเดลผิด) ไม่ fallback (ปัญหาตั้งค่า — ให้เห็นเหตุจริง) · fail ทุก endpoint = raise เดิม
         endpoints = [self.base_url]
-        for u in (CFG.get("ai_endpoints") or []):
+        for u in ([] if self.via_gateway else (CFG.get("ai_endpoints") or [])):  # T3: ผ่าน gateway = ทางเดียว
             if isinstance(u, str) and u.strip().rstrip("/") != self.base_url:
                 endpoints.append(u.strip().rstrip("/"))
         last_err = None

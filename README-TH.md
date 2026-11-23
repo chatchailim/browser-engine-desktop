@@ -96,6 +96,24 @@
 
 ---
 
+### 8. SPADA KeySign (กุญแจฮาร์ดแวร์) — คนกดปุ่มก่อนงานเสี่ยง (T2 · 23 พ.ย. 2026)
+
+- **คนละอย่างกับ chain-sign:** chain-sign คือกุญแจซอฟต์แวร์ในไฟล์ที่เซ็นทุกคำสั่งเป็นโซ่ · **KeySign** คืออุปกรณ์ SPADA Personal Key Token (RP2350) ที่ต้องมีคนกดปุ่มทุกครั้ง
+- **ตั้งค่า:** `spada_keysign_policy` = `off` (ค่าเริ่มต้น) | `enforce` · `spada_keysign_port` = พอร์ต CDC เช่น `COM7` · `spada_keysign_scope` = `["approve", "shell"]`
+- **approve:** `POST /api/approve/<task>/<step>` (งาน Risk ≥ 2) รอไฟเหลืองบนอุปกรณ์ → กดปุ่ม → ลายเซ็นผูกกับ task + step + action + target · ไม่กด/เซ็นไม่ผ่าน = **403 `spada_keysign_required`** และคำขอยังรออยู่
+- **shell:** ทุกคำสั่งรอการกดปุ่มก่อนรัน · ไม่ผ่าน = `spada_keysign_denied:<code>` · assertion ถูกบันทึกใน manifest (อยู่ใต้ลายเซ็น chain-sign อีกชั้น)
+- **ตรวจครบสี่ข้อทุกครั้ง:** ลายเซ็นตรง pubkey ที่ลงทะเบียน · challenge ของโฮสต์ใช้ครั้งเดียว · counter ต้องเพิ่ม · contextHash ตรงกับสิ่งที่อนุมัติ
+- **ลงทะเบียนอุปกรณ์กับเครื่อง (ผู้ดูแล):** `python -m service.spada_keysign register --port COM7 --owner "<ชื่อ>"` · ดูสถานะ `status` · เพิกถอน `revoke --reason "<เหตุผล>"`
+- **ข้อจำกัด:** พิสูจน์ได้ว่ามีคนกดปุ่มบนอุปกรณ์ที่ลงทะเบียน แต่ไม่พิสูจน์ว่าอุปกรณ์เป็นของแท้ (ไม่มี device attestation) · ยังไม่ผ่านการทดสอบกับอุปกรณ์จริงในเครื่องมือนี้ (ทดสอบด้วยตัวจำลอง)
+
+### 9. Planner ผ่าน SPADA ai-host-gateway (T3 · 23 พ.ย. 2026)
+
+- ตั้ง `planner_gateway_url` (เช่น `https://<dgx>.<tailnet>.ts.net/v1`) และ `planner_gateway_key_path` (ไฟล์ key `sah_…` ที่ผู้ดูแล gateway ออกให้เครื่องมือนี้)
+- ตั้งแล้ว Planner ใหญ่เรียก gateway ทางเดียว: **ไม่ถอยไป `ai_endpoints` หรือ `vllm_url` ตรง** · ไม่มี key = ปฏิเสธ (`planner_gateway_key_missing`) · gateway ไม่รับ `response_format`
+- ไม่ตั้ง = พฤติกรรมเดิม (เรียก vLLM ตรงด้วย `vllm_key_path`) · Vision และตัววางแผนเล็ก (Ollama) ยังเรียกตรงตามเดิม
+- `/api/status` บอก `planner_route` = `ai-host-gateway` | `direct`
+- ฝั่ง DGX ต้องมี gateway อีกตัวหน้า vLLM (`allowedModels` = ชื่อโมเดลใน `model`) — งานของผู้ดูแล DGX
+
 ## 🖥️ คำแนะนำขนาดหน้าจอ (Screen Resolution Guidelines)
 
 จากผลการทดสอบความแม่นยำของโมเดลสายตา (Vision Grounding) บน DGX Spark:
@@ -152,14 +170,14 @@
 | `POST` | `/api/pdpa/erase` | บังคับ Token | ลบข้อมูล Trace, ภาพถ่าย และไฟล์ดาวน์โหลดตามสิทธิ PDPA | Body: `{"task_id": "task_12345", "reason": "PDPA Request"}` |
 | `POST` | `/api/retention/purge` | บังคับ Token | ล้างข้อมูล Trace ที่เก่ากว่าจำนวนวันที่กำหนด (90 วัน) | Body: `{"retention_days": 90}` *(หาก days=0 ต้องแนบ `{"confirm": "PURGE_ALL"}`)* |
 | `POST` | `/api/open-browser` | บังคับ Token | เปิดเบราว์เซอร์ Chrome สำหรับให้ผู้ใช้ล็อกอินล่วงหน้า | Body: `{"url": "https://...", "profile": "default_user"}` |
-| `POST` | `/api/shell-run` | บังคับ Token | รันคำสั่ง OS จริง (ธง `shell_execution_enabled`; sandbox+keysign+manifest ครบตามธง) | Body: `{"command": "dir", "cwd": null, "elevated": false}` → exit_code/stdout/stderr/duration_ms |
+| `POST` | `/api/shell-run` | บังคับ Token | รันคำสั่ง OS จริง (ธง `shell_execution_enabled`; sandbox+chain-sign+manifest ครบตามธง) | Body: `{"command": "dir", "cwd": null, "elevated": false}` → exit_code/stdout/stderr/duration_ms |
 | `POST` | `/api/chat-task` | operator ขึ้นไป | **โหมดแชท**: ข้อความธรรมชาติ → งาน (ธง tiering) — ไม่มี host/URL ในข้อความ = 400 ระบบไม่เดาเว็บแทนผู้ใช้ · เสี่ยง/นอก allowlist = 403 | Body: `{"goal": "หาราคาหนังสือเล่มแรก", "host": "books.toscrape.com", "max_steps": 3}` → `{task_id, status:"queued", mode:"chat"}` |
 | `GET` | `/api/memory` | ทุก role | อ่านบริบทธุรกิจราย Node (Task Memory — จำข้อเท็จจริง ไม่จำคำตอบ) | `[{"key": "ซัพพลายเออร์หลัก", "value": "..."}]` |
 | `POST` | `/api/memory/add` · `/api/memory/remove` | **admin เท่านั้น** | เพิ่ม/ลบ (soft delete) บริบทธุรกิจ — ฉีดเข้า planner รอบถัดไปอัตโนมัติ (เพดาน 1200 อักษร) | Body: `{"key": "...", "value": "..."}` |
 | `GET` | `/api/roles` | ทุก role | รายชื่อสมาชิก+สถานะ active/revoked/expired (ไม่มี token ในผลเด็ดขาด) | `[{"name", "role", "state", "expires"}]` |
 | `POST` | `/api/roles/add` | **admin เท่านั้น** | สร้าง token ผู้ใช้ใหม่ (แสดงครั้งเดียว — เจ้าของจดสำรองทันที) · expires fail-closed | Body: `{"name", "role": "viewer\|operator\|admin", "expires": "2026-12-31" หรือ ""}` |
 | `POST` | `/api/roles/revoke` | **admin เท่านั้น** | ระงับ token ทันที — token เดิมใช้ไม่ได้ใน request ถัดไป (401) · re-issue = add ชื่อเดิมซ้ำ | Body: `{"name": "...", "reason": "..."}` |
-| `GET` | `/api/audit/list` · `GET /api/audit/manifest?file=app-YYYYMMDD.jsonl` | ทุก role | ระเบียนคำสั่ง+ตรวจลายเซ็นย้อน (keysign) — verify_chain 1 คลิกจากหน้า /audit | ไฟล์ละเมิด path ตอบ 400 |
+| `GET` | `/api/audit/list` · `GET /api/audit/manifest?file=app-YYYYMMDD.jsonl` | ทุก role | ระเบียนคำสั่ง+ตรวจลายเซ็นย้อน (chain-sign) — verify_chain 1 คลิกจากหน้า /audit | ไฟล์ละเมิด path ตอบ 400 |
 
 ---
 
