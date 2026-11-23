@@ -354,8 +354,10 @@ class InteractiveHandler(BaseHTTPRequestHandler):
             vllm_ok = False
             vllm_msg = "พร้อมใช้งาน (vLLM online)"
             try:
-                k = get_vllm_key()
-                url = CFG.get("vllm_url", "http://192.168.1.108/vllm/v1").rstrip("/")
+                from models.client import planner_route
+                _route = planner_route()  # T3: ตรวจทางเดียวกับที่ Planner ใช้จริง (gateway หรือ vLLM ตรง)
+                k = _route["key"]
+                url = _route["url"]
                 req = urllib.request.Request(f"{url}/models", headers={"Authorization": f"Bearer {k}"})
                 with urllib.request.urlopen(req, timeout=2) as r:
                     if r.status == 200:
@@ -371,6 +373,7 @@ class InteractiveHandler(BaseHTTPRequestHandler):
                 "vllm_ready": vllm_ok,
                 "vllm_message": vllm_msg if not vllm_ok else "พร้อมใช้งาน (vLLM online)",
                 "vllm_url": CFG.get("vllm_url"),
+                "planner_route": "ai-host-gateway" if CFG.get("planner_gateway_url") else "direct",
                 "model": CFG.get("model", "Qwen3.8-27B"),
                 "channel": CFG.get("browser_channel", "chrome"),
                 "active_task_id": ACTIVE_TASK_ID,

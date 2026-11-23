@@ -23,6 +23,8 @@
   "shell_timeout_seconds": 600,
   "shell_sandbox_mode": true,
   "chain_sign_policy": "audit",
+  "planner_gateway_url": "",
+  "planner_gateway_key_path": "",
   "spada_keysign_policy": "off",
   "spada_keysign_port": "",
   "spada_keysign_scope": ["approve", "shell"],

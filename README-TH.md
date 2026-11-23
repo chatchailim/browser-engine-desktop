@@ -106,6 +106,14 @@
 - **ลงทะเบียนอุปกรณ์กับเครื่อง (ผู้ดูแล):** `python -m service.spada_keysign register --port COM7 --owner "<ชื่อ>"` · ดูสถานะ `status` · เพิกถอน `revoke --reason "<เหตุผล>"`
 - **ข้อจำกัด:** พิสูจน์ได้ว่ามีคนกดปุ่มบนอุปกรณ์ที่ลงทะเบียน แต่ไม่พิสูจน์ว่าอุปกรณ์เป็นของแท้ (ไม่มี device attestation) · ยังไม่ผ่านการทดสอบกับอุปกรณ์จริงในเครื่องมือนี้ (ทดสอบด้วยตัวจำลอง)
 
+### 9. Planner ผ่าน SPADA ai-host-gateway (T3 · 23 พ.ย. 2026)
+
+- ตั้ง `planner_gateway_url` (เช่น `https://<dgx>.<tailnet>.ts.net/v1`) และ `planner_gateway_key_path` (ไฟล์ key `sah_…` ที่ผู้ดูแล gateway ออกให้เครื่องมือนี้)
+- ตั้งแล้ว Planner ใหญ่เรียก gateway ทางเดียว: **ไม่ถอยไป `ai_endpoints` หรือ `vllm_url` ตรง** · ไม่มี key = ปฏิเสธ (`planner_gateway_key_missing`) · gateway ไม่รับ `response_format`
+- ไม่ตั้ง = พฤติกรรมเดิม (เรียก vLLM ตรงด้วย `vllm_key_path`) · Vision และตัววางแผนเล็ก (Ollama) ยังเรียกตรงตามเดิม
+- `/api/status` บอก `planner_route` = `ai-host-gateway` | `direct`
+- ฝั่ง DGX ต้องมี gateway อีกตัวหน้า vLLM (`allowedModels` = ชื่อโมเดลใน `model`) — งานของผู้ดูแล DGX
+
 ## 🖥️ คำแนะนำขนาดหน้าจอ (Screen Resolution Guidelines)
 
 จากผลการทดสอบความแม่นยำของโมเดลสายตา (Vision Grounding) บน DGX Spark:
