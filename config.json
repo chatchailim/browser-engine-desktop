@@ -22,7 +22,7 @@
   "shell_elevated_allowed": true,
   "shell_timeout_seconds": 600,
   "shell_sandbox_mode": true,
-  "keysign_policy": "audit",
+  "chain_sign_policy": "audit",
   "roles_enabled": true,
   "planner_tiering_enabled": true,
   "planner_tier_small_model": "qwen3:4b-instruct-2507-q4_K_M",

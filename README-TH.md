@@ -152,14 +152,14 @@
 | `POST` | `/api/pdpa/erase` | บังคับ Token | ลบข้อมูล Trace, ภาพถ่าย และไฟล์ดาวน์โหลดตามสิทธิ PDPA | Body: `{"task_id": "task_12345", "reason": "PDPA Request"}` |
 | `POST` | `/api/retention/purge` | บังคับ Token | ล้างข้อมูล Trace ที่เก่ากว่าจำนวนวันที่กำหนด (90 วัน) | Body: `{"retention_days": 90}` *(หาก days=0 ต้องแนบ `{"confirm": "PURGE_ALL"}`)* |
 | `POST` | `/api/open-browser` | บังคับ Token | เปิดเบราว์เซอร์ Chrome สำหรับให้ผู้ใช้ล็อกอินล่วงหน้า | Body: `{"url": "https://...", "profile": "default_user"}` |
-| `POST` | `/api/shell-run` | บังคับ Token | รันคำสั่ง OS จริง (ธง `shell_execution_enabled`; sandbox+keysign+manifest ครบตามธง) | Body: `{"command": "dir", "cwd": null, "elevated": false}` → exit_code/stdout/stderr/duration_ms |
+| `POST` | `/api/shell-run` | บังคับ Token | รันคำสั่ง OS จริง (ธง `shell_execution_enabled`; sandbox+chain-sign+manifest ครบตามธง) | Body: `{"command": "dir", "cwd": null, "elevated": false}` → exit_code/stdout/stderr/duration_ms |
 | `POST` | `/api/chat-task` | operator ขึ้นไป | **โหมดแชท**: ข้อความธรรมชาติ → งาน (ธง tiering) — ไม่มี host/URL ในข้อความ = 400 ระบบไม่เดาเว็บแทนผู้ใช้ · เสี่ยง/นอก allowlist = 403 | Body: `{"goal": "หาราคาหนังสือเล่มแรก", "host": "books.toscrape.com", "max_steps": 3}` → `{task_id, status:"queued", mode:"chat"}` |
 | `GET` | `/api/memory` | ทุก role | อ่านบริบทธุรกิจราย Node (Task Memory — จำข้อเท็จจริง ไม่จำคำตอบ) | `[{"key": "ซัพพลายเออร์หลัก", "value": "..."}]` |
 | `POST` | `/api/memory/add` · `/api/memory/remove` | **admin เท่านั้น** | เพิ่ม/ลบ (soft delete) บริบทธุรกิจ — ฉีดเข้า planner รอบถัดไปอัตโนมัติ (เพดาน 1200 อักษร) | Body: `{"key": "...", "value": "..."}` |
 | `GET` | `/api/roles` | ทุก role | รายชื่อสมาชิก+สถานะ active/revoked/expired (ไม่มี token ในผลเด็ดขาด) | `[{"name", "role", "state", "expires"}]` |
 | `POST` | `/api/roles/add` | **admin เท่านั้น** | สร้าง token ผู้ใช้ใหม่ (แสดงครั้งเดียว — เจ้าของจดสำรองทันที) · expires fail-closed | Body: `{"name", "role": "viewer\|operator\|admin", "expires": "2026-12-31" หรือ ""}` |
 | `POST` | `/api/roles/revoke` | **admin เท่านั้น** | ระงับ token ทันที — token เดิมใช้ไม่ได้ใน request ถัดไป (401) · re-issue = add ชื่อเดิมซ้ำ | Body: `{"name": "...", "reason": "..."}` |
-| `GET` | `/api/audit/list` · `GET /api/audit/manifest?file=app-YYYYMMDD.jsonl` | ทุก role | ระเบียนคำสั่ง+ตรวจลายเซ็นย้อน (keysign) — verify_chain 1 คลิกจากหน้า /audit | ไฟล์ละเมิด path ตอบ 400 |
+| `GET` | `/api/audit/list` · `GET /api/audit/manifest?file=app-YYYYMMDD.jsonl` | ทุก role | ระเบียนคำสั่ง+ตรวจลายเซ็นย้อน (chain-sign) — verify_chain 1 คลิกจากหน้า /audit | ไฟล์ละเมิด path ตอบ 400 |
 
 ---
 

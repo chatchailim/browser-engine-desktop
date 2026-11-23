@@ -42,7 +42,7 @@ a{color:var(--muted);font-size:.75rem}
 <header>
   <h1>🔍 ตรวจย้อน <span class="muted" style="font-size:.8rem">(UI-05 — โชห่วยรายคำสั่ง + verify 1 คลิก)</span></h1>
   <div style="display:flex;gap:8px;align-items:center">
-    <span class="badge" id="policy-badge">keysign: ...</span>
+    <span class="badge" id="policy-badge">chain-sign: ...</span>
     <a href="/lab">← ห้องทดลอง</a><a href="/members">สิทธิ์/สมาชิก →</a><a href="/help">❓ Help</a>
   </div>
 </header>
@@ -105,8 +105,9 @@ async function loadList(){
   const d=await j('/api/audit/list');
   if(d.error){document.getElementById('shell-files').innerHTML=`<div class="muted">${esc(d.error)}</div>`;return;}
   const pb=document.getElementById('policy-badge');
-  pb.textContent='keysign: '+(d.keysign_policy||'?')+' · pubkey '+(d.pubkey_head||'—');
-  pb.className='badge '+(d.keysign_policy==='enforce'?'badge-ok':'badge-warn');
+  const pol=(d.chain_sign_policy||d.keysign_policy);
+  pb.textContent='chain-sign: '+(pol||'?')+' · pubkey '+(d.pubkey_head||'—');
+  pb.className='badge '+(pol==='enforce'?'badge-ok':'badge-warn');
   document.getElementById('pubkey').textContent=d.pubkey_head||'';
   listFiles('shell-files',d.shell);
   listFiles('desktop-files',d.desktop_input);

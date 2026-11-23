@@ -9,7 +9,7 @@
  3) คัดลอกโค้ด → TargetDir (ยกเว้น data/, .venv, .git, __pycache__, *.log)
  4) แปลง featureFlags/constants (UPPER_SNAKE) → config.json (snake_case) ตามแผนที่ทางการ
  5) venv + pip (requests, cryptography, jsonschema)
- 6) machine token ประจำเครื่อง (ไม่พรินต์ค่า) + keysign keypair
+ 6) machine token ประจำเครื่อง (ไม่พรินต์ค่า) + chain-sign keypair
  7) selftest = unittest ย่อ + ปลุก server + GET /api/status → 200
 
 ใช้: python provision/provision_node.py --config provision/admin-system-config.myai-harness.example.json \
@@ -35,7 +35,8 @@ SECRET_PATTERNS = [
 FLAG_MAP = {
     "RECIPE_CACHE_ENABLED": "recipe_cache_enabled",
     "ROLES_ENABLED": "roles_enabled",
-    "KEYSIGN_POLICY": "keysign_policy",
+    "CHAIN_SIGN_POLICY": "chain_sign_policy",
+    "KEYSIGN_POLICY": "chain_sign_policy",  # ชื่อเดิม — รับไว้ช่วงเปลี่ยนผ่าน (T1)
     "SHELL_EXECUTION_ENABLED": "shell_execution_enabled",
     "SHELL_ELEVATED_ALLOWED": "shell_elevated_allowed",
     "SHELL_SANDBOX_MODE": "shell_sandbox_mode",
@@ -160,15 +161,15 @@ def make_machine_secrets(target: pathlib.Path):
     key_dir.mkdir(parents=True, exist_ok=True)
     script = ("import sys;"
               f"sys.path.insert(0, r'{target}');"
-              "from service import keysign;"
-              "priv, pub = keysign.ensure_keypair();"
-              "key = keysign.ensure_key();"
+              "from service import chain_sign;"
+              "priv, pub = chain_sign.ensure_keypair();"
+              "key = chain_sign.ensure_key();"
               "print('KEYSIG_OK', len(pub))")
     r = subprocess.run([target / ".venv" / "Scripts" / "python.exe", "-c", script],
                        capture_output=True, text=True, timeout=60)
     if r.returncode != 0 or "KEYSIG_OK" not in r.stdout:
-        die(f"สร้าง keysign keypair ไม่สำเร็จ: {r.stderr.strip()[:200]}")
-    ok(f"keysign keypair + HMAC key → data/keysign/ (pub เข้าระเบียนได้ · private สงวน)")
+        die(f"สร้าง chain-sign keypair ไม่สำเร็จ: {r.stderr.strip()[:200]}")
+    ok(f"chain-sign keypair + HMAC key → data/keysign/ (pub เข้าระเบียนได้ · private สงวน)")
     return tok_file
 
 
@@ -273,7 +274,7 @@ def main():
     app_cfg = write_app_config(target, flags)
     ok(f"config.json เขียนแล้ว (port={app_cfg.get('port', 8205)})")
     if app_cfg.get("shell_execution_enabled"):
-        warn("Node นี้เปิด shell ให้ AI — ตรวจ allowlist/ธง keysign อีกชั้น (ข้อเสนอ §2 แนะปิด)")
+        warn("Node นี้เปิด shell ให้ AI — ตรวจ allowlist/ธง chain-sign อีกชั้น (ข้อเสนอ §2 แนะปิด)")
     # WO-019 B1b: ผูก Config Guard baseline ตาม Config Version ที่ผ่าน Approval (hash จากไฟล์ที่เขียนจริง)
     try:
         t_app = target / "apps" / "browser-engine-desktop" if False else target
@@ -321,7 +322,7 @@ def main():
     else:
         warn("ไม่มี playwright.exe — โหมด browser ของ server จะใช้ไม่ได้ (แจ้งผู้ดูแล Node)")
 
-    step(6, "ของประจำเครื่อง (machine token + keysign)")
+    step(6, "ของประจำเครื่อง (machine token + chain-sign)")
     tok_file = make_machine_secrets(target)
 
     step(7, "Selftest")

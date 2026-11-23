@@ -41,9 +41,9 @@ cd <โฟลเดอร์ที่แตก zip>
 - ทุกธงมี `rollbackValue` — กลับคืนได้ทุกเวลาผ่าน Version ถัดไป (มีหลักฐาน Audit)
 
 ## การสำรอง/หมุนของลับ
-- **สำรอง**: `C:\Users\<คุณ>\.browser-engine-desktop\` (token) + `<โค้ด>\data\keysign\` (กุญแจ) — เก็บใน Vault ของ Config Manager (ห้ามส่งแชท/email)
+- **สำรอง**: `C:\Users\<คุณ>\.browser-engine-desktop\` (token) + `<โค้ด>\data\keysign\` (กุญแจ chain-sign — ชื่อโฟลเดอร์เดิม) — เก็บใน Vault ของ Config Manager (ห้ามส่งแชท/email)
 - **หมุน token**: ลบไฟล์ token → เปิด server ใหม่ → token ใหม่เกิดเอง → แจกใหม่ผ่าน copy-token.cmd
-- **หมุน keysign**: โซนเดิมยังตรวจได้ด้วยกุญแจเก่า — เก็บไฟล์เก่าไว้ที่เดิมก่อนเปลี่ยน
+- **หมุนกุญแจ chain-sign**: โซนเดิมยังตรวจได้ด้วยกุญแจเก่า — เก็บไฟล์เก่าไว้ที่เดิมก่อนเปลี่ยน
 
 ## ความสามารถรายสิทธิ์ (สรุปตรงจากการพิสูจน์สด 9 กรณี)
 | ทำอะไร | viewer | operator | admin |

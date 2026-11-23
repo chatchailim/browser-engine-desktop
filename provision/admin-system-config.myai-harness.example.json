@@ -20,7 +20,7 @@
     "name": "SPADA MyAI Harness",
     "product": "OneManOS SetBox + SPADA MyAI Harness Node-1",
     "serviceTier": "sandbox",
-    "description": "AI harness: browser/computer/shell use พร้อม sandbox+keysign — ตั้งค่าตาม PROPOSAL-C §2",
+    "description": "AI harness: browser/computer/shell use พร้อม sandbox+chain-sign — ตั้งค่าตาม PROPOSAL-C §2",
     "owners": ["contact-system-owner"],
     "documentationRefs": [
       {"type": "policy", "uri": "codex-output/WO-018/PROPOSAL-C-DIST-VIA-CONFIG-MANAGER-TH.md", "label": "ข้อเสนอจ่ายผ่าน Config Manager"}
@@ -44,7 +44,7 @@
       "featureFlags": [
         {"key": "RECIPE_CACHE_ENABLED", "value": true, "risk": "low", "description": "จำสูตรงาน — เร็วขึ้น 2.1-4x ตั้งแต่รอบสอง (คำตอบยังมาจากหน้าจริง)", "changeControl": "admin", "rollbackValue": false},
         {"key": "ROLES_ENABLED", "value": true, "risk": "medium", "description": "สิทธิ์ 3 ระดับ (admin/operator/viewer) — ปิด=token เดียวทำได้ทุกอย่าง", "changeControl": "owner-approval", "rollbackValue": false},
-        {"key": "KEYSIGN_POLICY", "value": "audit", "risk": "medium", "description": "ลายเซ็นโซ่ทุกคำสั่ง: off|audit|enforce — enforce=ไม่มีกุญแจปฏิเสธคำสั่ง", "changeControl": "security-approval", "rollbackValue": "off"},
+        {"key": "CHAIN_SIGN_POLICY", "value": "audit", "risk": "medium", "description": "ลายเซ็นโซ่ทุกคำสั่ง: off|audit|enforce — enforce=ไม่มีกุญแจปฏิเสธคำสั่ง", "changeControl": "security-approval", "rollbackValue": "off"},
         {"key": "SHELL_EXECUTION_ENABLED", "value": false, "risk": "high", "description": "AI รันคำสั่งระบบ — ค่าปล่อย Node=ปิด ผู้ดูแล Node ปลดผ่าน Version+Approval ตามงาน", "changeControl": "work-order", "rollbackValue": false},
         {"key": "SHELL_ELEVATED_ALLOWED", "value": false, "risk": "critical", "description": "คำสั่ง admin (UAC กดที่คน) — ปิดเป็นค่าปล่อย", "changeControl": "work-order", "rollbackValue": false},
         {"key": "SHELL_SANDBOX_MODE", "value": true, "risk": "low", "description": "สแนปช็อต+กู้คืนไฟล์รอบคำสั่ง shell — เปิดทุกเครื่องที่ shell ปลด", "changeControl": "admin", "rollbackValue": false},
@@ -57,7 +57,7 @@
       ],
       "secretBindings": [
         {"secretId": "secret-myai-machine-token", "name": "MYAI_MACHINE_TOKEN", "store": "windows-password-vault", "secretRef": "vault://myai/MACHINE_TOKEN", "scope": "system", "status": "required", "rotationImpact": "token ใหม่ = ทุก client ใช้ token ใหม่ (คัดลอกด้วย copy-token.cmd)"},
-        {"secretId": "secret-myai-keysign-private", "name": "MYAI_KEYSIGN_PRIVATE", "store": "windows-password-vault", "secretRef": "vault://myai/KEYSIGN_PRIVATE", "scope": "system", "status": "required", "rotationImpact": "กุญแจใหม่ = โซนเดิมตรวจด้วยกุญแจเก่าได้ (เก็บกุญแจเก่าไว้ตรวจย้อน)"},
+        {"secretId": "secret-myai-chain-sign-private", "name": "MYAI_CHAIN_SIGN_PRIVATE", "store": "windows-password-vault", "secretRef": "vault://myai/CHAIN_SIGN_PRIVATE", "scope": "system", "status": "required", "rotationImpact": "กุญแจใหม่ = โซนเดิมตรวจด้วยกุญแจเก่าได้ (เก็บกุญแจเก่าไว้ตรวจย้อน)"},
         {"secretId": "secret-dgx-vllm-key", "name": "DGX_VLLM_KEY", "store": "windows-password-vault", "secretRef": "vault://dgx/VLLM_KEY", "scope": "resource", "status": "required", "rotationImpact": "โมเดล planning ต้อง key ใหม่ใน vllm_key_path"}
       ],
       "healthChecks": [],

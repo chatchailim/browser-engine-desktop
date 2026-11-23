@@ -411,10 +411,11 @@ class InteractiveHandler(BaseHTTPRequestHandler):
 
         # WO-019 C1 UI-05: รายการไฟล์ manifest ที่ตรวจย้อนได้ (shell + desktop input)
         if self.path.startswith("/api/audit/list"):
-            out = {"shell": [], "desktop_input": [], "keysign_policy": None}
+            out = {"shell": [], "desktop_input": [], "chain_sign_policy": None, "keysign_policy": None}
             try:
-                from service import keysign as _ks
-                out["keysign_policy"] = _ks.policy()
+                from service import chain_sign as _ks
+                out["chain_sign_policy"] = _ks.policy()
+                out["keysign_policy"] = out["chain_sign_policy"]  # ชื่อเดิม (เลิกใช้)
                 out["pubkey_head"] = _ks.pubkey_hex()[:16]
             except Exception:
                 pass
@@ -461,7 +462,7 @@ class InteractiveHandler(BaseHTTPRequestHandler):
             v = None
             if verify:
                 try:
-                    from service import keysign as _ks
+                    from service import chain_sign as _ks
                     v = _ks.verify_chain(str(p))
                 except Exception as e:
                     v = {"exists": True, "error": str(e)[:100]}
