@@ -22,7 +22,24 @@ from execution import approval_ui
 
 APP = pathlib.Path(__file__).resolve().parent.parent
 AUTONOMY_STOP = APP / "service" / "AUTONOMY-STOP"
-CONTROL = APP.parents[2] / "coordination/codex-anti/control.json"
+
+def _control_path() -> pathlib.Path:
+    """control.json ของ coordination — env BED_COORDINATION_DIR ก่อน แล้วไล่หาโฟลเดอร์ coordination ขึ้นไป.
+
+    รองรับทั้ง layout เดิม (ai-platform-kit/apps/browser-engine-desktop) และ repo แยก (browser-engine-desktop)
+    — ของเดิม APP.parents[2] ใช้ได้เฉพาะ layout เดิม และพังด้วย IndexError เมื่อแยก repo
+    """
+    import os
+    env = os.environ.get("BED_COORDINATION_DIR")
+    if env:
+        return pathlib.Path(env) / "codex-anti/control.json"
+    for parent in APP.parents:
+        if (parent / "coordination").is_dir():
+            return parent / "coordination/codex-anti/control.json"
+    return APP.parent / "coordination/codex-anti/control.json"
+
+
+CONTROL = _control_path()
 DEFAULT_ALLOWED_IMAGES = ["C:\\Windows\\System32\\notepad.exe"]
 DEFAULT_MAX_ACTIONS = 60
 APPROVAL_TIMEOUT_S = 20.0

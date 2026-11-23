@@ -8,7 +8,7 @@ import threading
 import time
 import unittest
 
-BASE = pathlib.Path("D:/karaok/ai-platform-kit/apps/browser-engine-desktop")
+BASE = pathlib.Path(__file__).resolve().parent.parent  # repo แยกแล้ว — ห้ามชี้ path เดิมใน ai-platform-kit
 if str(BASE) not in sys.path:
     sys.path.insert(0, str(BASE))
 
