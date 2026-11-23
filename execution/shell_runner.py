@@ -107,6 +107,7 @@ class ShellRunner:
         from service import chain_sign as _cs
         self.chain_sign_policy = _cs.policy_from_cfg(cfg)  # T1: chain_sign_policy ก่อน แล้วรับ keysign_policy เดิม
         self.keysign_policy = self.chain_sign_policy  # ชื่อเดิม — คงไว้ให้โค้ดเก่าอ่านได้
+        self._cfg = cfg  # T2: นโยบาย SPADA KeySign (ฮาร์ดแวร์) อ่านจาก config ชุดเดียวกัน
         self.manifest = manifest or Manifest()
         self._sandbox = None
         self._snapshot_before = None
@@ -166,6 +167,15 @@ class ShellRunner:
             from service import chain_sign
             if not chain_sign.key_available():
                 return ShellResult(False, None, "", "", 0, command, cwd or ".", "chain_sign_enforce_no_key")
+        # T2: SPADA KeySign ฮาร์ดแวร์ — คนต้องกดปุ่มบนอุปกรณ์ก่อนคำสั่งนี้วิ่ง (ลายเซ็นผูกกับคำสั่ง+cwd+elevated เต็มข้อความ)
+        from service import spada_keysign as _sk
+        try:
+            hw = _sk.sign_if_required(self._cfg, "shell", {"purpose": "bed.shell-run/v1", "command": command,
+                                                            "cwd": cwd or "", "elevated": bool(elevated)})
+        except _sk.KeySignError as e:
+            return ShellResult(False, None, "", "", 0, command, cwd or ".", f"spada_keysign_denied:{e.code}")
+        if hw is not None:
+            detail["spada_keysign"] = hw  # อยู่ใน base ที่ chain-sign เซ็นทับ — แก้ย้อนหลังจับได้
 
         # step2: แซนด์บ็อกซ์ครอบจริงเมื่อ cwd อยู่ใต้ shell_sandbox_dir (ไม่อยู่ = รันปกติ ไม่ snapshot + กำกับใน manifest)
         sandboxed = False

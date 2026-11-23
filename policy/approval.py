@@ -1,9 +1,27 @@
 """Human Approval Manager for High-Risk Actions (Risk 2 & Risk 3).
 Enforces mandatory safety gates before executing sensitive transactions.
 """
+import json
+import pathlib
 import threading
 import time
 from typing import Any, Dict, List, Optional
+
+APP = pathlib.Path(__file__).resolve().parent.parent
+
+
+def _cfg() -> Dict[str, Any]:
+    try:
+        return json.loads((APP / "config.json").read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def approval_context(req: "ApprovalRequest") -> Dict[str, Any]:
+    """สิ่งที่ลายเซ็น KeySign ผูกไว้ — อนุมัติ "ขั้นนี้ของงานนี้ ทำสิ่งนี้" เท่านั้น ไม่ใช่อนุมัติทั่วไป (T2)."""
+    return {"purpose": "bed.approve/v1", "task_id": req.task_id, "step": req.step_num,
+            "action_type": req.action_type, "target": req.target, "risk_level": str(req.risk_level),
+            "description": req.description}
 
 
 class ApprovalRequest:
@@ -25,6 +43,7 @@ class ApprovalRequest:
         self.created_at = time.time()
         self.event = threading.Event()
         self.status = "pending"  # pending, approved, rejected, cancelled
+        self.keysign = None  # T2: record ของลายเซ็น SPADA KeySign เมื่อนโยบาย enforce
 
 
 class ApprovalManager:
@@ -74,12 +93,23 @@ class ApprovalManager:
         approver: Optional[Dict[str, str]] = None,
         env: Optional[Dict[str, str]] = None
     ) -> bool:
-        """Grant approval for a pending risky step and issue FactWebActionApproved (F9)."""
+        """Grant approval for a pending risky step and issue FactWebActionApproved (F9).
+
+        T2: เมื่อ spada_keysign_policy=enforce (scope approve) ต้องได้ลายเซ็นจากอุปกรณ์ SPADA KeySign ก่อน —
+        เซ็นไม่ผ่าน = โยน KeySignError และคำขอยังรออยู่ (ไม่ถูกอนุมัติ ไม่ถูกปฏิเสธ)
+        """
         key = f"{task_id}_{step_num}"
         with self._lock:
             req = self._pending.get(key)
-            if req and req.status == "pending":
+            if not (req and req.status == "pending"):
+                return False
+        # เซ็นนอก lock — รอคนกดปุ่มได้ถึง 15 วินาที ไม่ขวางคำขออื่น
+        from service import spada_keysign as _sk
+        hw = _sk.sign_if_required(_cfg(), "approve", approval_context(req))
+        with self._lock:
+            if self._pending.get(key) is req and req.status == "pending":
                 req.status = "approved"
+                req.keysign = hw
                 req.event.set()
 
                 # Requirement 32 & F9: Emit FactWebActionApproved

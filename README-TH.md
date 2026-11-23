@@ -96,6 +96,16 @@
 
 ---
 
+### 8. SPADA KeySign (กุญแจฮาร์ดแวร์) — คนกดปุ่มก่อนงานเสี่ยง (T2 · 23 พ.ย. 2026)
+
+- **คนละอย่างกับ chain-sign:** chain-sign คือกุญแจซอฟต์แวร์ในไฟล์ที่เซ็นทุกคำสั่งเป็นโซ่ · **KeySign** คืออุปกรณ์ SPADA Personal Key Token (RP2350) ที่ต้องมีคนกดปุ่มทุกครั้ง
+- **ตั้งค่า:** `spada_keysign_policy` = `off` (ค่าเริ่มต้น) | `enforce` · `spada_keysign_port` = พอร์ต CDC เช่น `COM7` · `spada_keysign_scope` = `["approve", "shell"]`
+- **approve:** `POST /api/approve/<task>/<step>` (งาน Risk ≥ 2) รอไฟเหลืองบนอุปกรณ์ → กดปุ่ม → ลายเซ็นผูกกับ task + step + action + target · ไม่กด/เซ็นไม่ผ่าน = **403 `spada_keysign_required`** และคำขอยังรออยู่
+- **shell:** ทุกคำสั่งรอการกดปุ่มก่อนรัน · ไม่ผ่าน = `spada_keysign_denied:<code>` · assertion ถูกบันทึกใน manifest (อยู่ใต้ลายเซ็น chain-sign อีกชั้น)
+- **ตรวจครบสี่ข้อทุกครั้ง:** ลายเซ็นตรง pubkey ที่ลงทะเบียน · challenge ของโฮสต์ใช้ครั้งเดียว · counter ต้องเพิ่ม · contextHash ตรงกับสิ่งที่อนุมัติ
+- **ลงทะเบียนอุปกรณ์กับเครื่อง (ผู้ดูแล):** `python -m service.spada_keysign register --port COM7 --owner "<ชื่อ>"` · ดูสถานะ `status` · เพิกถอน `revoke --reason "<เหตุผล>"`
+- **ข้อจำกัด:** พิสูจน์ได้ว่ามีคนกดปุ่มบนอุปกรณ์ที่ลงทะเบียน แต่ไม่พิสูจน์ว่าอุปกรณ์เป็นของแท้ (ไม่มี device attestation) · ยังไม่ผ่านการทดสอบกับอุปกรณ์จริงในเครื่องมือนี้ (ทดสอบด้วยตัวจำลอง)
+
 ## 🖥️ คำแนะนำขนาดหน้าจอ (Screen Resolution Guidelines)
 
 จากผลการทดสอบความแม่นยำของโมเดลสายตา (Vision Grounding) บน DGX Spark:

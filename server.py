@@ -532,7 +532,13 @@ class InteractiveHandler(BaseHTTPRequestHandler):
                 task_id, step_str = parts[0], parts[1]
                 try:
                     step_num = int(step_str)
-                    ok = approval_manager.approve(task_id, step_num)
+                    from service import spada_keysign as _sk
+                    try:
+                        ok = approval_manager.approve(task_id, step_num)
+                    except _sk.KeySignError as e:
+                        # T2: ต้องมีลายเซ็นจาก SPADA KeySign — ไม่ผ่าน = ยังไม่อนุมัติ (คำขอยังรออยู่)
+                        self._send_json({"error": "spada_keysign_required", "code": e.code}, 403)
+                        return
                     if ok:
                         self._send_json({"status": "approved", "task_id": task_id, "step": step_num})
                     else:
