@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ห้องทดลองสั่งงาน — Browser Engine Desktop</title>
+<style>
+:root{
+  --bg:#0f172a;--card:#1e293b;--border:#334155;--primary:#38bdf8;--primary-hover:#0ea5e9;
+  --text:#f8fafc;--muted:#94a3b8;--success:#4ade80;--warn:#facc15;--danger:#f87171;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system,'Segoe UI',sans-serif}
+body{background:var(--bg);color:var(--text);padding:20px}
+.container{max-width:1050px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:12px}
+h1{font-size:1.3rem;color:var(--primary);display:flex;align-items:center;gap:8px}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:9999px;font-size:.75rem;border:1px solid var(--muted);color:var(--muted)}
+.badge-ok{background:rgba(74,222,128,.12);color:var(--success);border-color:var(--success)}
+.badge-bad{background:rgba(248,113,113,.12);color:var(--danger);border-color:var(--danger)}
+.badge-warn{background:rgba(250,204,21,.12);color:var(--warn);border-color:var(--warn)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+label{font-size:.8rem;color:var(--muted);display:block;margin-bottom:4px}
+textarea,input[type=text],input[type=url]{width:100%;background:#0b1220;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:.95rem}
+textarea{min-height:70px;resize:vertical}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row>div{flex:1;min-width:240px}
+button{background:var(--primary);color:#04121f;border:none;border-radius:8px;padding:10px 20px;font-size:.95rem;font-weight:600;cursor:pointer}
+button:hover{background:var(--primary-hover)}
+button:disabled{opacity:.5;cursor:not-allowed}
+button.ghost{background:transparent;color:var(--muted);border:1px solid var(--border);font-weight:400;padding:6px 12px}
+button.approve-btn{background:var(--success)}
+button.reject-btn{background:var(--danger);color:#1f0808}
+.steps{margin-top:14px;font-size:.85rem}
+.steps table{width:100%;border-collapse:collapse}
+.steps th{color:var(--muted);text-align:left;border-bottom:1px solid var(--border);padding:6px 8px;font-size:.72rem;letter-spacing:.04em}
+.steps td{border-bottom:1px solid var(--border);padding:6px 8px;vertical-align:top}
+.tag{display:inline-block;padding:1px 8px;border-radius:6px;font-size:.68rem;border:1px solid var(--muted);color:var(--muted)}
+.tag.dom{color:var(--primary);border-color:var(--primary)}
+.tag.vision{color:var(--warn);border-color:var(--warn)}
+.tag.takeover{color:var(--danger);border-color:var(--danger)}
+.num{font-variant-numeric:tabular-nums;text-align:right}
+.big-num{font-size:1.35rem;font-variant-numeric:tabular-nums;font-weight:600}
+.muted{color:var(--muted);font-size:.78rem}
+.answer{background:#0b1220;border:1px solid var(--border);border-radius:10px;padding:12px;margin-top:10px}
+.answer .txt{font-size:1.05rem;color:var(--success);font-weight:600}
+.approval-box{border:1px solid var(--warn);background:rgba(250,204,21,.07);border-radius:10px;padding:12px;margin-top:10px}
+.hint{font-size:.75rem;color:var(--muted);margin-top:6px}
+.example{color:var(--muted);font-size:.75rem;margin-top:4px;cursor:pointer;text-decoration:underline dotted}
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+  <h1>🧪 ห้องทดลองสั่งงาน — Browser Engine</h1>
+  <div style="display:flex;gap:8px;align-items:center">
+    <span class="badge" id="dgx-badge">DGX: ...</span>
+    <span class="badge" id="sys-badge">ระบบ: ...</span>
+    <a href="/members" style="color:var(--muted);font-size:.75rem">👥 สิทธิ์/สมาชิก</a>
+    <a href="/audit" style="color:var(--muted);font-size:.75rem">🔍 ตรวจย้อน</a>
+    <a href="/help" style="color:var(--muted);font-size:.75rem">❓ Help คู่มือใช้งาน</a>
+    <a href="/" style="color:var(--muted);font-size:.75rem">← แดชบอร์ดเดิม</a>
+  </div>
+</header>
+
+<div class="card">
+  <label>ความต้องการ (พิมพ์ตามธรรมชาติ — ระบบจะแตกเป็นขั้นตอนเอง)</label>
+  <textarea id="goal" placeholder="เช่น: หาราคาของหนังสือเล่มแรกในหมวด Travel"></textarea>
+  <span class="example" onclick="fill1()">ตัวอย่าง 1: หาราคาหนังสือ</span> ·
+  <span class="example" onclick="fill2()">ตัวอย่าง 2: ตรวจสินค้า</span> ·
+  <span class="example" onclick="fill3()">ตัวอย่าง 3: ค้าหา</span>
+  <div class="row" style="margin-top:10px">
+    <div><label>URL เป้าหมาย</label><input type="url" id="url" value="http://books.toscrape.com/catalogue/category/books/travel_2/index.html"></div>
+    <div style="flex:0 0 130px"><label>ขั้นตอนสูงสุด</label><input type="text" id="max_steps" value="5"></div>
+    <div style="flex:0 0 170px;display:flex;align-items:flex-end"><button id="run-btn" style="width:100%">▶ สั่งทำงาน</button></div>
+  </div>
+  <div class="hint">งานที่เคยทำแล้ว (URL+เป้าหมายเดิม) ระบบใช้สูตรที่จำไว้ → เร็วขึ้น ~4 เท่า (21.9s → ~5.5s) · งานใหม่ระบบเรียนรู้ให้เอง</div>
+</div>
+
+<div class="card" id="chat-section" style="display:none">
+  <div style="display:flex;justify-content:space-between;align-items:baseline">
+    <h2 style="font-size:1rem;display:inline">💬 คุยสั่งงาน — พิมพ์ตามธรรมชาติ</h2>
+    <span class="muted">งานเสี่ยง/เว็บนอก allowlist = ระบบปฏิเสธและชี้ไปหน้าฟอร์ม (ปกป้องตามกติกา)</span>
+  </div>
+  <div id="chat-log" style="background:#0b1220;border:1px solid var(--border);border-radius:10px;padding:12px;margin-top:10px;max-height:300px;overflow:auto;font-size:.85rem">
+    <div class="muted">ยังไม่มีการคุย — พิมพ์ด้านล่างได้เลย (เช่น "หาราคาหนังสือเล่มแรกหมวด Travel") — ระบบจะใช้เว็บ books.toscrape.com (allowlist)</div>
+  </div>
+  <div class="row" style="margin-top:10px">
+    <div style="flex:1"><input type="text" id="chat-input" placeholder="พิมพ์ความต้องการ…" style="width:100%" onkeydown="if(event.key==='Enter')sendChat()"></div>
+    <div style="flex:0 0 120px"><label class="muted" style="margin-bottom:4px;display:block">เว็บ (allowlist)</label>
+      <select id="chat-host" style="width:100%">
+        <option value="books.toscrape.com">books.toscrape.com</option>
+        <option value="en.wikipedia.org">en.wikipedia.org</option>
+      </select></div>
+    <div style="flex:0 0 130px"><button id="chat-btn" style="width:100%">ส่งข้อความ</button></div>
+  </div>
+  <div class="hint">ต่างจากเขา (Grockbot/Atlas): ระบบ**ไม่เดาเว็บแทนคุณ** — เว็บมาจาก allowlist ที่ผู้ดูแลอนุมัติเท่านั้น · งานใหญ่/ล็อกอิน = หน้าฟอร์ม + อนุมัติตามกระบวนการ</div>
+</div>
+
+<div class="card">
+  <div style="display:flex;gap:10px">
+    <button id="tab-browser" onclick="setMode('browser')">🌐 Browser Use</button>
+    <button id="tab-desktop" class="ghost" onclick="setMode('desktop')">🖥 Computer Use</button>
+    <button id="tab-chat" class="ghost" onclick="setMode('chat')">💬 คุยสั่งงาน</button>
+  </div>
+</div>
+
+<div class="card" id="approval-card" style="display:none">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <div><b style="color:var(--warn)">⏸ งานกำลังรอการอนุมัติจากคุณ</b>
+      <div class="muted" id="approval-desc"></div></div>
+    <div style="display:flex;gap:8px">
+      <button class="approve-btn" onclick="decide('approve')">อนุมัติ</button>
+      <button class="reject-btn" onclick="decide('reject')">ปฏิเสธ</button>
+    </div>
+  </div>
+</div>
+
+<div class="card" id="desktop-section" style="display:none">
+  <div style="display:flex;justify-content:space-between;align-items:baseline">
+    <h2 style="font-size:1rem;display:inline">🖥 Computer Use — แทนคนบนหน้าจอ (Notepad)</h2>
+    <span class="muted">ระดับ A: อนุมัติ 1 ครั้งต่องาน (popup บนจอ) · ปุ่มเขียวขึ้นเองเมื่องานถึงคิว</span>
+  </div>
+  <label style="margin-top:10px">ความต้องการบนหน้าจอ (AI จะแตกเป็นคลิก/พิมพ์/ลากใน Notepad ให้เอง)</label>
+  <textarea id="dgoal" placeholder="เช่น: พิมพ์รายการซื้อของ 3 บรรทัด แล้วกด Enter ท้ายแต่ละบรรทัด"></textarea>
+  <div class="row" style="margin-top:10px">
+    <div style="flex:0 0 150px"><label>คำสั่งสูงสุด</label><input type="text" id="dmax" value="20"></div>
+    <div style="flex:0 0 190px;display:flex;align-items:flex-end"><button id="drun" style="width:100%">🖥 สั่งทำงานบนจอ</button></div>
+  </div>
+  <div class="hint">หน้าต่าง Notepad ใหม่จะเปิดเอง → popup ขออนุมัติบนจอ → กด "อนุมัติ" → AI ทำในกรอบหน้าต่างนั้นทันที (ไม่ต้องพิมพ์รหัส) · หยุด: Esc ค้าง / ไฟล์ AUTONOMY-STOP · ห้ามใช้กับข้อมูลลับ/การเงิน</div>
+
+  <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
+  <div style="display:flex;justify-content:space-between;align-items:baseline">
+    <h2 style="font-size:1rem;display:inline;color:var(--success)">👁️ Computer Use Vision — อ่านแชทหน้าต่าง LINE เป็น JSON</h2>
+    <span class="muted">ใช้ร่วมกับ OneVault Gemini Secret / DGX Qwen2.5-VL</span>
+  </div>
+  <div class="row" style="margin-top:10px">
+    <div style="flex:1"><label>ชื่อห้องแชท LINE เป้าหมาย</label><input type="text" id="vroom" value="sc13" placeholder="เช่น sc13"></div>
+    <div style="flex:0 0 130px"><label>หน่วงเวลาจับภาพ (วิ)</label><input type="text" id="vcountdown" value="3"></div>
+    <div style="flex:0 0 220px;display:flex;align-items:flex-end"><button id="vrun" style="width:100%;background:var(--success);color:#04121f">👁️ อ่านแชท LINE เป็น JSON</button></div>
+  </div>
+  <div class="hint">เปิดห้องแชทที่ต้องการใน LINE Desktop → กดปุ่มเขียว → กด ✔ อนุมัติบน Popup → ระบบจะจับภาพหน้าต่าง LINE แล้วถอดข้อความวันนี้เป็น JSON ให้อัตโนมัติ</div>
+  <div id="vjson-box" style="display:none;margin-top:10px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <span class="muted">ผลลัพธ์ JSON จากหน้าต่าง LINE:</span>
+      <button class="ghost" onclick="copyVisionJson()" style="padding:3px 10px;font-size:.75rem">📋 คัดลอก JSON</button>
+    </div>
+    <pre id="vjson-out" style="background:#0b1220;border:1px solid var(--border);border-radius:8px;padding:10px;max-height:320px;overflow:auto;font-size:.78rem;color:#a7f3d0;white-space:pre-wrap"></pre>
+  </div>
+</div>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+    <h2 style="font-size:1rem">ขั้นตอนการทำงาน</h2>
+    <button class="ghost" id="stop-btn" onclick="stopTask()" style="display:none">■ หยุดงาน (ปฏิเสธการอนุมัติค้าง)</button>
+  </div>
+  <div class="steps">
+    <table>
+      <thead><tr><th>#</th><th>การกระทำ</th><th>เป้าหมาย</th><th>ชั้นที่ใช้</th><th>ผล</th><th class="num">เวลา</th></tr></thead>
+      <tbody id="steps-body"><tr><td colspan="6" class="muted">ยังไม่มีงาน — พิมพ์ความต้องการด้านบนแล้วกดสั่งทำงาน</td></tr></tbody>
+    </table>
+  </div>
+  <div class="row" style="margin-top:12px">
+    <div class="card" style="flex:1;background:#0b1220;padding:10px">
+      <div class="muted">เวลาวางแผน (LLM / แคช)</div>
+      <div class="big-num" id="stat-plan">—</div>
+    </div>
+    <div class="card" style="flex:1;background:#0b1220;padding:10px">
+      <div class="muted">เวลารวมทั้งงาน</div>
+      <div class="big-num" id="stat-total">—</div>
+    </div>
+    <div class="card" style="flex:1;background:#0b1220;padding:10px">
+      <div class="muted">ใช้สูตรจำ (แคช)</div>
+      <div class="big-num" id="stat-cache">—</div>
+    </div>
+  </div>
+  <div class="answer" id="answer-box" style="display:none">
+    <div class="muted">คำตอบ (อ่านจากหน้าจริง ณ ตอนรัน — ไม่ใช้แคชคำตอบ)</div>
+    <div class="txt" id="answer-txt"></div>
+    <div class="muted" id="answer-ev"></div>
+  </div>
+</div>
+</div>
+<template id="row-tpl"><tr><td class="num"></td><td></td><td></td><td></td><td></td><td class="num"></td></tr></template>
+<script>
+const $=id=>document.getElementById(id);
+let pollTimer=null, currentTask=null;
+const fmt=s=>s==null?'—':(s>=10000?(s/1000).toFixed(1)+'s':s+'ms');
+const esc=t=>(t??'').toString().replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+let TOKEN=sessionStorage.getItem('desktop_token')||'';
+function withAuth(h){h=h||{};h['X-Desktop-Token']=TOKEN;return h;}
+let AUTH_FAIL=false;
+function needToken(){AUTH_FAIL=true;$('sys-badge').textContent='ระบบ: ต้องวาง Token';$('sys-badge').className='badge badge-warn';askToken();}
+async function j(u,o){
+  o=o||{};o.headers=withAuth(o.headers);
+  let r;
+  try{r=await fetch(u,o);}
+  catch(e){throw {net:true,msg:'หลุดการเชื่อมต่อกับ server (127.0.0.1:8205) — ระบบจะลองใหม่เองเมื่อ server กลับมา'};}
+  if(r.status===401){needToken();throw {auth:true,msg:'Token ไม่ถูกต้อง — วางใหม่จากไฟล์ C:\\\\Users\\\\chatc\\\\.browser-engine-desktop\\\\token'};}
+  AUTH_FAIL=false;
+  return r.json();
+}
+function askToken(){if(TOKEN)return;const v=prompt('วาง X-Desktop-Token (จากไฟล์ C:\\\\Users\\\\chatc\\\\.browser-engine-desktop\\\\token):');if(v){TOKEN=v.trim();sessionStorage.setItem('desktop_token',TOKEN);AUTH_FAIL=false;}}
+// ถ้ายังไม่มี token → ถามครั้งแรกที่กดสั่ง/ตรวจสถานะ
+window.addEventListener('DOMContentLoaded',askToken);
+async function pollStatus(){
+  try{
+    const s=await j('/api/status');
+    $('dgx-badge').textContent='DGX: '+(s.vllm_ready?'พร้อม ('+s.model+')':'หลุด');
+    $('dgx-badge').className='badge '+(s.vllm_ready?'badge-ok':'badge-bad');
+    const pend=s.pending_approvals||0, take=s.takeover_active;
+    let sys='พร้อม',cls='badge-ok';
+    if(take){sys='รอคุณเข้าช่วย (takeover)';cls='badge-warn'}
+    else if(pend){sys='รออนุมัติ '+pend+' รายการ';cls='badge-warn'}
+    else if(s.active_task_id){sys='กำลังทำงาน...';cls='badge-warn'}
+    $('sys-badge').textContent='ระบบ: '+sys;$('sys-badge').className='badge '+cls;
+    $('approval-card').style.display=pend?'block':'none';
+    if(pend){$('stop-btn').style.display='inline-block'}
+  }catch(e){
+    if(e&&e.auth){/* ป้ายตั้งไว้แล้วใน needToken() — รอ token ใหม่ */}
+    else{$('sys-badge').textContent='ระบบ: '+(e&&e.msg?e.msg:'หลุดการเชื่อมต่อ');$('sys-badge').className='badge badge-bad';}
+  }
+}
+function renderTask(t){
+  currentTask=t;
+  const steps=(t.steps||[]);
+  const tb=$('steps-body');tb.innerHTML='';
+  const tpl=$('row-tpl');
+  if(!steps.length){tb.innerHTML='<tr><td colspan="6" class="muted">กำลังเริ่มงาน...</td></tr>';}
+  steps.forEach((s,i)=>{
+    const r=tpl.content.cloneNode(true);const td=r.querySelectorAll('td');
+    td[0].textContent=i+1;
+    td[1].textContent=s.action||s.action_type||'';
+    td[2].textContent=(s.target||s.target_desc||'').slice(0,42);
+    td[3].innerHTML='<span class="tag '+String(s.strategy||'dom').toLowerCase()+'">'+esc(s.strategy||s.action_type||'dom')+'</span>';
+    td[4].textContent=s.status==='approval_required'?'รออนุมัติ':(s.answer||s.status||s.result||'');
+    td[5].textContent=s.elapsed_ms!=null?fmt(s.elapsed_ms):'';
+    tb.appendChild(r);
+  });
+  const tel=t.telemetry||{};
+  $('stat-plan').textContent=tel.planning_ms!=null?fmt(tel.planning_ms):'—';
+  $('stat-total').textContent=tel.total_elapsed_ms!=null?fmt(tel.total_elapsed_ms):'—';
+  $('stat-cache').textContent=tel.recipe_hit?'✓ ใช้สูตรจำ (เร็ว)':(tel.planning_ms>3000?'LLM วางแผน+บันทึก':'LLM');
+  $('stat-cache').style.color=tel.recipe_hit?'var(--success)':'var(--warn)';
+  if(t.status==='done'&&tel.answer){$('answer-box').style.display='block';$('answer-txt').textContent=tel.answer;
+    $('answer-ev').textContent='หลักฐาน: '+JSON.stringify(tel.evidence||{}).slice(0,160);}
+  else if(t.status){$('answer-box').style.display=tel.answer?'block':'none';}
+  if(t.kind==='desktop_vision'&&t.status==='done'&&tel.evidence){
+    $('vjson-box').style.display='block';
+    $('vjson-out').textContent=JSON.stringify(tel.evidence,null,2);
+  }
+  $('stop-btn').style.display=(t.status==='running')?'inline-block':'none';
+}
+function copyVisionJson(){
+  const txt=$('vjson-out').textContent||'';
+  if(!txt)return;
+  navigator.clipboard.writeText(txt).then(()=>alert('คัดลอก JSON แล้วครับ'));
+}
+async function pollTask(){
+  if(!currentTask)return;
+  try{const t=await j('/api/task/'+currentTask.id);renderTask(t);
+    if(t.status!=='running'&&t.status!=='queued'){clearInterval(pollTimer);pollTimer=null;$('run-btn').disabled=false;}
+  }catch(e){}
+}
+$('run-btn').onclick=async()=>{
+  const goal=$('goal').value.trim(),url=$('url').value.trim();
+  if(!goal||!url)return alert('กรอกความต้องการและ URL ก่อนครับ');
+  const r=await j('/api/task',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({url,goal,max_steps:parseInt($('max_steps').value)||5})});
+  if(r.error)return alert('สั่งไม่ได้: '+r.error);
+  currentTask={id:r.task_id,steps:[],telemetry:{},status:'running'};
+  $('run-btn').disabled=true;$('answer-box').style.display='none';
+  renderTask(currentTask);
+  clearInterval(pollTimer);pollTimer=setInterval(pollTask,1200);pollTask();
+};
+async function decide(kind){
+  if(!lastPending)return;const a=lastPending[0];
+  await j(`/api/${kind}/${a.task_id}/${a.step_num}`,{method:'POST'});
+  setTimeout(pollStatus,300);
+}
+let lastPending=null;
+(async()=>{const _pp=async()=>{try{const p=await j('/api/approvals');lastPending=(p&&p.length)?p:null;
+  if(p&&p.length){$('approval-desc').textContent=(p[0].description||'')+' (งาน '+p[0].task_id+' ขั้น '+p[0].step_num+')';}
+}catch(e){}};_pp();})();
+async function stopTask(){if(!lastPending)return alert('ไม่มีการอนุมัติค้างให้ปฏิเสธ');await decide('reject');}
+function fill1(){$('goal').value='หาราคาของหนังสือเล่มแรกในหมวด Travel';$('url').value='http://books.toscrape.com/catalogue/category/books/travel_2/index.html';}
+function fill2(){$('goal').value='ค้นหาหนังสือเกี่ยวกับ philosophy แล้วบอกราคาเล่มแรก';$('url').value='http://books.toscrape.com/catalogue/category/books/philosophy_26/index.html';}
+function fill3(){$('goal').value='หาชื่อหนังสือที่แพงที่สุดในหมวดนี้และราคา';$('url').value='http://books.toscrape.com/catalogue/category/books/travel_2/index.html';}
+let MODE='browser';
+function setMode(m){MODE=m;
+  $('tab-browser').className=m==='browser'?'':'ghost';
+  $('tab-desktop').className=m==='desktop'?'':'ghost';
+  $('tab-chat').className=m==='chat'?'':'ghost';
+  const showBrowser=m==='browser';
+  $('goal').parentElement.parentElement.style.display=showBrowser?'block':'none';
+  $('desktop-section').style.display=m==='desktop'?'block':'none';
+  $('chat-section').style.display=m==='chat'?'block':'none';
+  $('steps-body').innerHTML='<tr><td colspan="6" class="muted">'+(showBrowser?'ยังไม่มีงาน — พิมพ์ความต้องการด้านบนแล้วกดสั่งทำงาน':'พร้อมสั่งงานบนจอ — พิมพ์เป้าหมายแล้วกด สั่งทำงานบนจอ (Notepad จะเปิดเอง+popup ขออนุมัติ)')+'</td></tr>';
+}
+$('drun').onclick=async()=>{
+  const goal=$('dgoal').value.trim();
+  if(!goal)return alert('พิมพ์เป้าหมายบนจอก่อนครับ');
+  askToken();
+  const r=await wrapJ('/api/desktop-task',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({goal,max_actions:parseInt($('dmax').value)||20})});
+  if(r.error)return alert('สั่งไม่ได้: '+r.error);
+  currentTask={id:null,steps:[],telemetry:{},status:'waiting_approval',_kind:'desktop'};
+  $('drun').disabled=true;
+  renderTask(currentTask);
+  // รอ task id: poll รายการ tasks จนเห็นงาน desk_ ใหม่สุด
+  clearInterval(pollTimer);
+  pollTimer=setInterval(async()=>{
+    try{const ts=await wrapJ('/api/tasks');
+      const dt=ts.find(t=>String(t.id).startsWith('desk_'));
+      if(!currentTask.id&&dt){currentTask.id=dt.id;currentTask.status=dt.status;renderTask(currentTask);}
+      if(currentTask.id){const t=await wrapJ('/api/task/'+currentTask.id);renderTask(t);
+        if(t.status&&!['running','queued','waiting_approval'].includes(t.status)){clearInterval(pollTimer);pollTimer=null;$('drun').disabled=false;}}
+    }catch(e){}
+  },1200);
+};
+$('vrun').onclick=async()=>{
+  const room=$('vroom').value.trim()||'sc13';
+  const countdown=parseInt($('vcountdown').value)||3;
+  askToken();
+  const r=await wrapJ('/api/desktop-vision-read',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({room,countdown})});
+  if(r.error)return alert('สั่งไม่ได้: '+r.error);
+  currentTask={id:r.task_id,kind:'desktop_vision',steps:[],telemetry:{},status:'waiting_approval'};
+  $('vrun').disabled=true;$('vjson-box').style.display='none';
+  renderTask(currentTask);
+  clearInterval(pollTimer);
+  pollTimer=setInterval(async()=>{
+    try{const t=await wrapJ('/api/task/'+currentTask.id);renderTask(t);
+      if(t.status&&!['running','queued','waiting_approval'].includes(t.status)){clearInterval(pollTimer);pollTimer=null;$('vrun').disabled=false;}
+    }catch(e){}
+  },1200);
+};
+async function wrapJ(u,o){try{return await j(u,o);}catch(e){askToken();return j(u,o);}}
+async function sendChat(){
+  const txt=$('chat-input').value.trim();
+  if(!txt)return;
+  $('chat-input').value='';
+  const host=$('chat-host').value;
+  const log=$('chat-log');
+  log.insertAdjacentHTML('beforeend',`<div style="margin-top:6px"><b style="color:var(--primary)">คุณ:</b> ${esc(txt)}</div>`);
+  log.insertAdjacentHTML('beforeend',`<div style="margin-top:6px;color:var(--muted)" id="chat-pending"><b>ระบบ:</b> กำลังแปลงเป็นงาน + วางแผน (โมเดลเล็กถ้างานง่าย)…</div>`);
+  log.scrollTop=log.scrollHeight;
+  try{
+    const r=await wrapJ('/api/chat-task',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({goal:txt,host,max_steps:3})});
+    if(r.error){$('chat-pending').outerHTML=`<div style="margin-top:6px;color:var(--danger)"><b>ระบบ:</b> ${esc(r.error)}</div>`;return;}
+    $('chat-pending').outerHTML=`<div style="margin-top:6px"><b>ระบบ:</b> รับงาน ${esc(r.task_id)} — ตารางขั้นตอนด้านล่างเดินสด</div>`;
+    currentTask={id:r.task_id,steps:[],telemetry:{},status:'running'};
+    $('run-btn').disabled=true;
+    renderTask(currentTask);
+    clearInterval(pollTimer);pollTimer=setInterval(pollTask,1200);pollTask();
+  }catch(e){
+    $('chat-pending').outerHTML=`<div style="margin-top:6px;color:var(--danger)"><b>ระบบ:</b> ${esc((e&&e.msg)||'สั่งไม่สำเร็จ — ลองใหม่')}</div>`;
+  }
+}
+$('chat-btn').onclick=sendChat;
+pollStatus();setInterval(pollStatus,2500);
+setInterval(async()=>{try{const p=await wrapJ('/api/approvals');lastPending=(p&&p.length)?p:null;
+  if(p&&p.length){$('approval-desc').textContent=(p[0].description||'')+' (งาน '+p[0].task_id+' ขั้น '+p[0].step_num+')';}}catch(e){}},2000);
+</script>
+</body>
+</html>

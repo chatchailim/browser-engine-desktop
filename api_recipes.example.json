@@ -1,0 +1,75 @@
+{
+  "_comment": "ตัวอย่างไฟล์กำหนดสูตรการเรียก Direct API (Level 1) สำหรับ OneVault Desktop Engine — ห้ามใส่กุญแจจริงหรือค่าลับลงในไฟล์นี้",
+  "_security_notes": {
+    "host_whitelist": "ใน config.json direct_api_allowed_hosts รองรับทั้งชื่อโฮสต์โดเมนล้วน (เช่น 'api.weather.example.internal' อนุญาตทุกพอร์ต) หรือผูกเจาะจงพอร์ต (เช่น '127.0.0.1:8080')",
+    "scheme": "โฮสต์ภายนอกและโฮสต์ภายในที่ไม่ใช่ loopback จะถูกเรียกด้วย https:// เสมอ แม้ระบุพอร์ต หากต้องการใช้ http:// ให้เพิ่ม 'allow_insecure_http': true ในสูตร",
+    "retryable": "ค่าเริ่มต้น retryable เป็น false เพื่อป้องกันคำขอซ้ำซ้อน (GR7)"
+  },
+  "recipes": {
+    "get_weather_forecast": {
+      "description": "ดึงข้อมูลพยากรณ์อากาศตามรหัสเมือง (อ่านอย่างเดียว - จัดเป็น Risk 0)",
+      "method": "GET",
+      "host": "api.weather.example.internal",
+      "path": "/v1/forecast/{city_code}",
+      "allowed_parameters": ["city_code", "units"],
+      "timeout_s": 5.0,
+      "retryable": false
+    },
+    "query_inventory": {
+      "description": "ค้นหาสต็อกสินค้าคงคลังตามรหัส SKU (อ่านอย่างเดียว - จัดเป็น Risk 0)",
+      "method": "GET",
+      "host": "inventory.corp.example.internal",
+      "path": "/api/v2/items/{sku}",
+      "allowed_parameters": ["sku"],
+      "auth_token_file": "./secrets/inventory_token.txt",
+      "auth_header": "Bearer {token}",
+      "timeout_s": 5.0,
+      "retryable": false
+    },
+    "submit_internal_ticket": {
+      "description": "ส่งคำร้องขอความช่วยเหลือภายใน (เปลี่ยนสถานะ - จัดเป็น Risk 2 ต้องผ่านการยืนยัน)",
+      "method": "POST",
+      "host": "support.corp.example.internal",
+      "path": "/api/tickets",
+      "allowed_parameters": ["title", "department", "details"],
+      "payload_template": {
+        "title": "{title}",
+        "department": "{department}",
+        "description": "{details}"
+      },
+      "auth_token_file": "./secrets/support_token.txt",
+      "auth_header": "Bearer {token}",
+      "timeout_s": 10.0,
+      "retryable": false
+    },
+    "cancel_order": {
+      "description": "ยกเลิกคำสั่งซื้อสินค้า (มีคำกลุ่มยกเลิก/การเงิน - จัดเป็น Risk 3 ต้องผ่านด่านอนุมัติ)",
+      "method": "POST",
+      "host": "orders.corp.example.internal",
+      "path": "/api/orders/{order_id}/cancel",
+      "allowed_parameters": ["order_id", "reason"],
+      "payload_template": {
+        "reason": "{reason}"
+      },
+      "auth_token_file": "./secrets/orders_token.txt",
+      "auth_header": "Bearer {token}",
+      "timeout_s": 10.0,
+      "retryable": false
+    },
+    "refund_payment": {
+      "description": "ส่งคำขอคืนเงินธุรกรรม (การเงิน - จัดเป็น Risk 3 ต้องผ่านด่านอนุมัติอย่างเด็ดขาด)",
+      "method": "POST",
+      "host": "billing.corp.example.internal",
+      "path": "/api/v1/payments/{payment_id}/refund",
+      "allowed_parameters": ["payment_id", "amount", "currency"],
+      "payload_template": {
+        "amount": "{amount}",
+        "currency": "{currency}"
+      },
+      "auth_token_file": "./secrets/billing_token.txt",
+      "auth_header": "Bearer {token}",
+      "timeout_s": 15.0,
+      "retryable": false
+    }
+  }
+}

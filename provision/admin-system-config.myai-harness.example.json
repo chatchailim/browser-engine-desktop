@@ -1,0 +1,99 @@
+{
+  "$schema": "../schemas/admin-system-config.schema.json",
+  "schemaVersion": "1.0.0",
+  "configId": "oms-admin-config-customer-slug",
+  "revision": 1,
+  "status": "draft",
+  "classification": "internal",
+  "generatedAt": "2026-10-05T00:00:00Z",
+  "customer": {
+    "customerId": "customer-customer-slug",
+    "displayName": "ชื่อลูกค้า/Node (แก้จริง)",
+    "legalName": "ชื่อนิติบุคคล",
+    "countryCode": "TH",
+    "timezone": "Asia/Bangkok",
+    "primaryDomain": "localhost",
+    "tags": ["setbox", "community", "myai-harness"]
+  },
+  "system": {
+    "systemId": "system-customer-slug",
+    "name": "SPADA MyAI Harness",
+    "product": "OneManOS SetBox + SPADA MyAI Harness Node-1",
+    "serviceTier": "sandbox",
+    "description": "AI harness: browser/computer/shell use พร้อม sandbox+keysign — ตั้งค่าตาม PROPOSAL-C §2",
+    "owners": ["contact-system-owner"],
+    "documentationRefs": [
+      {"type": "policy", "uri": "codex-output/WO-018/PROPOSAL-C-DIST-VIA-CONFIG-MANAGER-TH.md", "label": "ข้อเสนอจ่ายผ่าน Config Manager"}
+    ]
+  },
+  "contacts": [
+    {"contactId": "contact-system-owner", "role": "system-owner", "displayName": "เจ้าของระบบ (Node)", "organization": "ชื่อ Node"}
+  ],
+  "environments": [
+    {
+      "environmentId": "env-sandbox",
+      "kind": "sandbox",
+      "status": "planned",
+      "region": "APAC",
+      "baseUrls": [],
+      "resources": [
+        {"resourceId": "resource-setbox-node-pc", "type": "physical-setbox", "provider": "onemanos", "name": "Node PC (Windows)", "status": "planned"}
+      ],
+      "channels": [],
+      "integrations": [],
+      "featureFlags": [
+        {"key": "RECIPE_CACHE_ENABLED", "value": true, "risk": "low", "description": "จำสูตรงาน — เร็วขึ้น 2.1-4x ตั้งแต่รอบสอง (คำตอบยังมาจากหน้าจริง)", "changeControl": "admin", "rollbackValue": false},
+        {"key": "ROLES_ENABLED", "value": true, "risk": "medium", "description": "สิทธิ์ 3 ระดับ (admin/operator/viewer) — ปิด=token เดียวทำได้ทุกอย่าง", "changeControl": "owner-approval", "rollbackValue": false},
+        {"key": "KEYSIGN_POLICY", "value": "audit", "risk": "medium", "description": "ลายเซ็นโซ่ทุกคำสั่ง: off|audit|enforce — enforce=ไม่มีกุญแจปฏิเสธคำสั่ง", "changeControl": "security-approval", "rollbackValue": "off"},
+        {"key": "SHELL_EXECUTION_ENABLED", "value": false, "risk": "high", "description": "AI รันคำสั่งระบบ — ค่าปล่อย Node=ปิด ผู้ดูแล Node ปลดผ่าน Version+Approval ตามงาน", "changeControl": "work-order", "rollbackValue": false},
+        {"key": "SHELL_ELEVATED_ALLOWED", "value": false, "risk": "critical", "description": "คำสั่ง admin (UAC กดที่คน) — ปิดเป็นค่าปล่อย", "changeControl": "work-order", "rollbackValue": false},
+        {"key": "SHELL_SANDBOX_MODE", "value": true, "risk": "low", "description": "สแนปช็อต+กู้คืนไฟล์รอบคำสั่ง shell — เปิดทุกเครื่องที่ shell ปลด", "changeControl": "admin", "rollbackValue": false},
+        {"key": "DESKTOP_AUTONOMY_ENABLED", "value": true, "risk": "medium", "description": "AI วางแผน+ลงมือบนเดสก์ท็อปต่องาน (popup อนุมัติรายงาน + allowlist notepad)", "changeControl": "owner-approval", "rollbackValue": false}
+      ],
+      "constants": [
+        {"key": "MYAI_PORT", "value": 8205, "valueType": "integer", "source": "code-default", "description": "พอร์ตประตูเดียว (127.0.0.1 เท่านั้น)"},
+        {"key": "MYAI_DESKTOP_ALLOWED_APPS", "value": ["C:\\Windows\\System32\\notepad.exe"], "valueType": "json", "source": "code-default", "description": "แอปที่ AI แตะได้ (ขยายผ่าน Version)"},
+        {"key": "MYAI_SHELL_TIMEOUT_SECONDS", "value": 600, "valueType": "integer", "source": "code-default", "description": "เพดานเวลาต่อคำสั่ง shell (วินาที)"}
+      ],
+      "secretBindings": [
+        {"secretId": "secret-myai-machine-token", "name": "MYAI_MACHINE_TOKEN", "store": "windows-password-vault", "secretRef": "vault://myai/MACHINE_TOKEN", "scope": "system", "status": "required", "rotationImpact": "token ใหม่ = ทุก client ใช้ token ใหม่ (คัดลอกด้วย copy-token.cmd)"},
+        {"secretId": "secret-myai-keysign-private", "name": "MYAI_KEYSIGN_PRIVATE", "store": "windows-password-vault", "secretRef": "vault://myai/KEYSIGN_PRIVATE", "scope": "system", "status": "required", "rotationImpact": "กุญแจใหม่ = โซนเดิมตรวจด้วยกุญแจเก่าได้ (เก็บกุญแจเก่าไว้ตรวจย้อน)"},
+        {"secretId": "secret-dgx-vllm-key", "name": "DGX_VLLM_KEY", "store": "windows-password-vault", "secretRef": "vault://dgx/VLLM_KEY", "scope": "resource", "status": "required", "rotationImpact": "โมเดล planning ต้อง key ใหม่ใน vllm_key_path"}
+      ],
+      "healthChecks": [],
+      "backup": {"enabled": false}
+    }
+  ],
+  "credentialAccounts": [
+    {"accountId": "account-myai-machine-token", "systemName": "SPADA MyAI Harness (localhost:8205)", "loginUrl": "http://127.0.0.1:8205/api/status", "username": "machine", "role": "admin", "secretRef": "vault://myai/MACHINE_TOKEN", "mfa": "not-supported", "ownerRef": "contact-system-owner", "status": "active", "notes": "สร้างตอน provision — ผู้ดูแล Node เก็บใน Vault ของ Config Manager เท่านั้น"}
+  ],
+  "policies": {
+    "secretHandling": "references-only",
+    "humanApprovalActions": ["permission-change", "production-change", "memory-enable"],
+    "defaultDataClassification": "internal",
+    "externalProcessing": "consent-required",
+    "privacyPolicyUrl": "",
+    "dataDeletionUrl": "",
+    "memory": {
+      "shortTerm": "enabled",
+      "longTerm": "synthetic-only",
+      "personalRetrieval": "disabled",
+      "crossChannelSharing": "disabled",
+      "realIdentityLinking": "sandbox"
+    },
+    "retentionRef": "",
+    "incidentResponseRef": ""
+  },
+  "operations": {
+    "changeControl": "approval-workflow",
+    "reviewFrequency": "quarterly",
+    "runbookRefs": [
+      {"type": "runbook", "uri": "coordination/codex-anti/codex-output/WO-018/PROPOSAL-C-DIST-VIA-CONFIG-MANAGER-TH.md", "label": "เส้นทางอนุมัติ 5 ขั้น §4"}
+    ],
+    "emergencyControls": [
+      {"condition": "AI ทำงานผิดทาง/งานค้าง", "action": "POST /api/task-cancel (หยุดงานกลางวิ่ง) หรือปิดโปรเซส server.py", "approval": "pre-approved"},
+      {"condition": "คำสั่ง shell ทำไฟล์เสียหายใน sandbox", "action": "POST /api/shell-rollback (กู้คืนจากสแนปช็อต)", "approval": "pre-approved"},
+      {"condition": "ต้องการพฤติกรรมเดิมทั้งระบบ", "action": "ตั้ง featureFlags ทุกตัว = rollbackValue → Config Version ใหม่ผ่าน Approval", "approval": "owner-required"}
+    ]
+  }
+}

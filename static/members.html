@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>สิทธิ์/สมาชิก — Browser Engine Desktop (UI-04)</title>
+<style>
+:root{
+  --bg:#0f172a;--card:#1e293b;--border:#334155;--primary:#38bdf8;--primary-hover:#0ea5e9;
+  --text:#f8fafc;--muted:#94a3b8;--success:#4ade80;--warn:#facc15;--danger:#f87171;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system,'Segoe UI',sans-serif}
+body{background:var(--bg);color:var(--text);padding:20px}
+.container{max-width:1050px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:12px}
+h1{font-size:1.3rem;color:var(--primary);display:flex;align-items:center;gap:8px}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:9999px;font-size:.75rem;border:1px solid var(--muted);color:var(--muted)}
+.badge-ok{background:rgba(74,222,128,.12);color:var(--success);border-color:var(--success)}
+.badge-warn{background:rgba(250,204,21,.12);color:var(--warn);border-color:var(--warn)}
+.badge-bad{background:rgba(248,113,113,.12);color:var(--danger);border-color:var(--danger)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+th{color:var(--muted);text-align:left;border-bottom:1px solid var(--border);padding:6px 8px;font-size:.72rem;letter-spacing:.04em}
+td{border-bottom:1px solid var(--border);padding:6px 8px;vertical-align:top}
+.tag{display:inline-block;padding:1px 8px;border-radius:6px;font-size:.68rem;border:1px solid var(--muted);color:var(--muted)}
+.tag-admin{color:var(--primary);border-color:var(--primary)}
+.tag-operator{color:var(--warn);border-color:var(--warn)}
+.tag-viewer{color:var(--muted);border-color:var(--muted)}
+button{background:var(--primary);color:#04121f;border:none;border-radius:8px;padding:8px 16px;font-size:.9rem;font-weight:600;cursor:pointer}
+button:hover{background:var(--primary-hover)}
+button:disabled{opacity:.5;cursor:not-allowed}
+button.ghost{background:transparent;color:var(--muted);border:1px solid var(--border);font-weight:400;padding:6px 12px}
+input,select{background:#0b1220;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px;font-size:.9rem}
+.muted{color:var(--muted);font-size:.78rem}
+.hint{font-size:.75rem;color:var(--muted);margin-top:6px}
+.token-box{background:#0b1220;border:1px solid var(--warn);border-radius:10px;padding:12px;margin-top:10px;display:none}
+.token-box .tok{font-family:monospace;font-size:.9rem;word-break:break-all;color:var(--warn)}
+a{color:var(--muted);font-size:.75rem}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.row>div{flex:1;min-width:180px}
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+  <h1>👥 สิทธิ์/สมาชิก <span class="muted" style="font-size:.8rem">(UI-04)</span></h1>
+  <div style="display:flex;gap:8px;align-items:center">
+    <span class="badge" id="flag-badge">ธง roles: ...</span>
+    <a href="/lab">← ห้องทดลอง</a><a href="/audit">ตรวจย้อน →</a><a href="/help">❓ Help</a>
+  </div>
+</header>
+
+<div class="card">
+  <h2 style="font-size:1rem;margin-bottom:8px">ใครทำอะไรได้</h2>
+  <table>
+    <thead><tr><th>สมาชิก</th><th>สิทธิ์</th><th>สถานะ</th><th>หมดอายุ</th><th>ทำได้</th><th>จัดการ</th></tr></thead>
+    <tbody id="users-body"><tr><td colspan="6" class="muted">กำลังโหลด...</td></tr></tbody>
+  </table>
+  <div class="hint" id="matrix-note"></div>
+</div>
+
+<div class="card" id="add-card" style="display:none">
+  <h2 style="font-size:1rem;margin-bottom:8px">สร้างสมาชิกใหม่ <span class="muted" style="font-size:.75rem">(admin เท่านั้น — token แสดงครั้งเดียว)</span></h2>
+  <div class="row">
+    <div><label class="muted" style="margin-bottom:4px;display:block">ชื่อผู้ใช้</label><input id="new-name" placeholder="เช่น somchai" style="width:100%"></div>
+    <div><label class="muted" style="margin-bottom:4px;display:block">สิทธิ์</label>
+      <select id="new-role" style="width:100%">
+        <option value="viewer">viewer — อ่านอย่างเดียว</option>
+        <option value="operator">operator — สั่งงาน/อนุมัติ (ห้าม shell)</option>
+        <option value="admin">admin — ทุกอย่าง</option>
+      </select></div>
+    <div><label class="muted" style="margin-bottom:4px;display:block">หมดอายุ (ไม่ใส่ = ไม่มีวันหมด)</label><input id="new-expires" placeholder="2026-12-31" style="width:100%"></div>
+    <div style="flex:0 0 170px"><button id="add-btn" style="width:100%">สร้าง token</button></div>
+  </div>
+  <div class="token-box" id="token-box">
+    <b style="color:var(--warn)">⏳ Token ใหม่ — คัดลอกเก็บทันที เปิดหน้านี้ครั้งต่อไปจะไม่แสดงอีก:</b>
+    <div class="tok" id="new-token"></div>
+    <div class="hint" id="token-file-hint"></div>
+  </div>
+  <div class="hint">สร้างสำเร็จ → ระบบเก็บเฉพาะไฟล์ token ฝั่ง Node (data/roles/<ชื่อ>.token) — ตัวเลข token ไม่ถูกบันทึกในแชท/รายงานใด</div>
+</div>
+
+<div class="card">
+  <h2 style="font-size:1rem;margin-bottom:8px">กติกาโดยตั้ง (fail-closed)</h2>
+  <table>
+    <thead><tr><th>เคส</th><th>ผล</th></tr></thead>
+    <tbody>
+      <tr><td>ไม่มี token / token ไม่รู้จัก</td><td><span class="tag tag-admin">401</span> ทุก /api/* — ทำอะไรไม่ได้เลย</td></tr>
+      <tr><td>POST เส้นทางที่ไม่อยู่ตาราง</td><td><span class="tag tag-admin">admin เท่านั้น</span> (403 สำหรับ operator/viewer)</td></tr>
+      <tr><td>viewer สั่งงาน/POST ใด ๆ</td><td><span class="tag tag-viewer">403</span> — อ่านได้อย่างเดียว</td></tr>
+      <tr><td>operator รัน shell</td><td><span class="tag tag-operator">403</span> — คุมสูงสุด (ติดตั้ง/คำสั่งระบบ)</td></tr>
+      <tr><td>ธง roles_enabled = off</td><td><span class="badge badge-warn">พฤติกรรมเดิม 100%</span> token เดียว = ทุกสิทธิ์</td></tr>
+    </tbody>
+  </table>
+  <div class="hint">หน้านี้อ่านอย่างเดียวได้ทุก role — ปุ่มสร้างโชว์เฉพาะ admin (ธงปิด = ทุก token คือ admin)</div>
+</div>
+</div>
+
+<script>
+const TOKEN=sessionStorage.getItem('desktop_token')||'';
+function withAuth(h){h=h||{};h['X-Desktop-Token']=TOKEN;return h;}
+async function j(u,o){o=o||{};o.headers=withAuth(o.headers);
+  let r;try{r=await fetch(u,o);}catch(e){return {error:'หลุดการเชื่อมต่อ server'};}
+  if(r.status===401)return {error:'401 — ต้องใช้ token (เปิด /lab วาง token ก่อน)'};
+  return r.json();}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+async function load(){
+  const d=await j('/api/roles');
+  if(d.error){document.getElementById('users-body').innerHTML=`<tr><td colspan="6" class="muted">${esc(d.error)}</td></tr>`;return;}
+  const fb=document.getElementById('flag-badge');
+  fb.textContent='ธง roles: '+(d.roles_enabled?'เปิด':'ปิด (token เดียว = admin)');
+  fb.className='badge '+(d.roles_enabled?'badge-ok':'badge-warn');
+  const stTag=s=>({'active':'<span class="tag tag-admin">ใช้งานได้</span>','expired':'<span class="tag tag-viewer">หมดอายุ</span>','revoked':'<span class="badge badge-bad" style="padding:1px 8px;font-size:.68rem">ระงับแล้ว</span>'}[s]||s);
+  const tb=document.getElementById('users-body');
+  tb.innerHTML=(d.users||[]).map(u=>`<tr>
+    <td>${esc(u.name)}</td>
+    <td><span class="tag tag-${esc(u.role)}">${esc(u.role)}</span></td>
+    <td>${stTag(u.state)}</td>
+    <td class="muted">${esc(u.expires||'ไม่มีวันหมด')}</td>
+    <td class="muted">${esc((d.matrix||{})[u.role]||'')}</td>
+    <td>${u.state==='active'||u.state==='expired'?`<button class="ghost" style="padding:2px 8px;font-size:.7rem" onclick="revoke('${esc(u.name)}')">ระงับ</button>`:'<span class="muted" style="font-size:.7rem">สร้างใหม่ได้ทางฟอร์ม</span>'}</td>
+  </tr>`).join('')||'<tr><td colspan="6" class="muted">ยังไม่มีสมาชิกลงทะเบียน (ธงปิด = token เครื่องเป็น admin เดียว)</td></tr>';
+  document.getElementById('matrix-note').textContent=d.note||'';
+  if(d.roles_enabled)document.getElementById('add-card').style.display='block';
+}
+async function revoke(name){
+  if(!confirm(`ระงับ token ของ "${name}" ทันที? — token เดิมกลับ 401 ทุกเรียกต่อไป (สร้างใหม่ได้ภายหลัง)`))return;
+  const r=await j('/api/roles/revoke',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,reason:'revoked จากหน้า members'})});
+  if(r.error)return alert('ระงับไม่ได้: '+r.error);
+  load();
+}
+document.getElementById('add-btn').onclick=async()=>{
+  const n=document.getElementById('new-name').value.trim(),r=document.getElementById('new-role').value;
+  if(!n)return alert('ใส่ชื่อผู้ใช้ก่อน');
+  const ex=document.getElementById('new-expires').value.trim();
+  const res=await j('/api/roles/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,role:r,expires:ex})});
+  if(res.error)return alert('สร้างไม่ได้: '+res.error);
+  document.getElementById('token-box').style.display='block';
+  document.getElementById('new-token').textContent=res.token;
+  document.getElementById('token-file-hint').textContent='เก็บไว้ที่ Node: '+esc(res.warning||'');
+  load();
+};
+load();
+</script>
+</body>
+</html>

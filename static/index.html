@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OneVault Interactive Agent Engine</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --primary: #38bdf8;
+      --primary-hover: #0ea5e9;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --success: #4ade80;
+      --warn: #facc15;
+      --danger: #f87171;
+      --dom: #38bdf8;
+      --ax: #a855f7;
+      --vision: #f59e0b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 20px; }
+    .container { max-width: 1050px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+
+    header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 14px; }
+    h1 { font-size: 1.45rem; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+    .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; font-size: 0.8rem; font-weight: 500; }
+    .badge-ok { background: rgba(74, 222, 128, 0.15); color: var(--success); border: 1px solid var(--success); }
+    .badge-err { background: rgba(248, 113, 113, 0.15); color: var(--danger); border: 1px solid var(--danger); }
+
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+    .card-title { font-size: 1.05rem; font-weight: 600; margin-bottom: 12px; color: #e2e8f0; display: flex; align-items: center; justify-content: space-between; }
+
+    /* Takeover Banner */
+    .takeover-banner {
+      display: none; background: rgba(239, 68, 68, 0.15); border: 2px solid var(--danger);
+      padding: 16px 20px; border-radius: 12px; align-items: center; justify-content: space-between; gap: 16px;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
+    .takeover-title { font-weight: 700; color: #fca5a5; font-size: 1.05rem; }
+    .takeover-desc { font-size: 0.85rem; color: #cbd5e1; margin-top: 4px; }
+    .btn-resume { background: var(--success); color: #022c22; font-weight: 700; padding: 10px 22px; border-radius: 8px; border: none; cursor: pointer; }
+    .btn-resume:hover { background: #22c55e; }
+
+    /* Metrics Grid */
+    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 8px; }
+    .metric-card { background: #0b1120; border: 1px solid var(--border); border-radius: 8px; padding: 12px; text-align: center; }
+    .metric-val { font-size: 1.4rem; font-weight: 700; color: var(--primary); margin-top: 4px; }
+    .metric-lbl { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .strategy-pill { font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
+    .pill-dom { background: rgba(56, 189, 248, 0.2); color: var(--dom); border: 1px solid var(--dom); }
+    .pill-ax { background: rgba(168, 85, 247, 0.2); color: var(--ax); border: 1px solid var(--ax); }
+    .pill-vision { background: rgba(245, 158, 11, 0.2); color: var(--vision); border: 1px solid var(--vision); }
+    .pill-api { background: rgba(74, 222, 128, 0.2); color: var(--success); border: 1px solid var(--success); }
+
+    .login-section { display: flex; align-items: center; justify-content: space-between; gap: 16px; background: rgba(56, 189, 248, 0.05); border: 1px dashed #0284c7; }
+    .login-desc { font-size: 0.85rem; color: var(--muted); line-height: 1.4; }
+
+    .form-group { margin-bottom: 12px; }
+    label { display: block; font-size: 0.82rem; font-weight: 500; color: var(--muted); margin-bottom: 5px; }
+    input[type="text"], input[type="number"], textarea {
+      width: 100%; background: #0b1120; border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px;
+      color: var(--text); font-size: 0.9rem; outline: none; transition: border-color 0.2s;
+    }
+    input:focus, textarea:focus { border-color: var(--primary); }
+
+    button {
+      cursor: pointer; background: var(--primary); color: #021427; border: none; padding: 9px 18px;
+      border-radius: 8px; font-weight: 600; font-size: 0.9rem; transition: background 0.2s;
+    }
+    button:hover { background: var(--primary-hover); }
+    button.secondary { background: #334155; color: #f8fafc; }
+    button.secondary:hover { background: #475569; }
+    button.danger { background: #dc2626; color: white; }
+    button.danger:hover { background: #b91c1c; }
+
+    .step-list { display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow-y: auto; margin-top: 10px; }
+    .step-item { background: #0f172a; border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; }
+    .step-left { display: flex; align-items: center; gap: 10px; flex: 1; }
+    .step-num { font-size: 0.8rem; font-weight: 700; color: var(--muted); width: 24px; }
+    .step-act { font-weight: 700; color: #e2e8f0; width: 120px; font-size: 0.88rem; }
+    .step-target { font-size: 0.85rem; color: #94a3b8; word-break: break-word; flex: 1; }
+    .step-ms { font-size: 0.78rem; color: var(--muted); margin-left: 10px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>⚡ OneVault Interactive Agent Engine</h1>
+        <p style="font-size: 0.82rem; color: var(--muted); margin-top: 3px;">Multi-Layer Automation: API → DOM → Accessibility Tree → Vision Fallback | Slow/Fast Brain Architecture</p>
+      </div>
+      <div id="statusBadge" class="badge badge-ok">ตรวจสอบสถานะ...</div>
+    </header>
+
+    <!-- Token Bar -->
+    <div id="tokenSection" class="card" style="padding: 12px 18px; background: rgba(56, 189, 248, 0.05); border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
+        <span style="font-size: 1.1rem;">🔑</span>
+        <span style="font-size: 0.85rem; color: var(--muted); font-weight: 500;">Desktop Token:</span>
+        <input type="password" id="tokenInput" placeholder="วาง X-Desktop-Token จากไฟล์ .browser-engine-desktop\token" style="flex: 1; padding: 6px 10px; font-size: 0.82rem; max-width: 480px;">
+        <button id="saveTokenBtn" class="secondary" style="font-size: 0.8rem; padding: 6px 14px;" onclick="saveToken()">บันทึก Token</button>
+      </div>
+      <div id="tokenStatus" style="font-size: 0.8rem; color: var(--muted);">ยังไม่ได้ตั้ง Token</div>
+    </div>
+
+    <!-- Risk Approval Banner -->
+    <div id="approvalBanner" class="takeover-banner" style="background: rgba(245, 158, 11, 0.15); border-color: var(--warn); display: none;">
+      <div>
+        <div class="takeover-title" style="color: #fde047;">🛡️ Action Requires Human Approval (ต้องการการอนุมัติการทำงาน)</div>
+        <div id="approvalDesc" class="takeover-desc" style="color: #fef08a;">กำลังจะทำคำสั่งที่มีความเสี่ยงสูง กรุณาตรวจสอบก่อนอนุญาต</div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button id="btnApprove" class="btn-resume" style="background: var(--warn); color: #451a03;" onclick="submitApproval(true)">อนุมัติ (APPROVE)</button>
+        <button id="btnReject" class="secondary" style="background: #475569;" onclick="submitApproval(false)">ปฏิเสธ (REJECT)</button>
+      </div>
+    </div>
+
+    <!-- Takeover Banner -->
+    <div id="takeoverBanner" class="takeover-banner">
+      <div>
+        <div class="takeover-title">⚠️ Human Takeover Required (ระบบหยุดรอการช่วยเหลือ)</div>
+        <div id="takeoverReason" class="takeover-desc">ตรวจพบหน้ากั้นความปลอดภัยหรือ CAPTCHA กรุณาช่วยคลิกแก้บนหน้าจอ Chrome แล้วกดปุ่มดำเนินการต่อ</div>
+      </div>
+      <button class="btn-resume" onclick="resumeAgent()">RESUME AGENT / ทำงานต่อ</button>
+    </div>
+
+    <!-- Login Helper Section -->
+    <div class="card login-section">
+      <div class="login-desc">
+        <strong>🌐 โหมดเข้าสู่ระบบ (Login Helper)</strong><br>
+        เปิด Chrome ปกติเพื่อล็อกอินบัญชี (เช่น Shopee, เว็บไซต์ธุรกิจ) เพียงครั้งเดียว ระบบจะเก็บ Session ไว้ในเครื่องถาวร
+      </div>
+      <button id="loginBtn" class="secondary" onclick="openLoginBrowser()">เปิด Chrome เพื่อล็อกอิน</button>
+    </div>
+
+
+    <!-- Task Form -->
+    <div class="card">
+      <div class="card-title">
+        <span>🎯 สั่งงาน Interactive Agent</span>
+        <button id="manualTakeoverBtn" class="danger" style="font-size: 0.8rem; padding: 5px 12px;" onclick="triggerManualTakeover()">TAKE CONTROL / เข้าควบคุมเมาส์</button>
+      </div>
+      <div class="form-group">
+        <label>URL เว็บไซต์เป้าหมาย</label>
+        <input type="text" id="targetUrl" value="https://shopee.co.th/search?keyword=notebook%20ryzen%205">
+      </div>
+      <div class="form-group">
+        <label>เป้าหมายงาน (Goal)</label>
+        <textarea id="targetGoal" rows="2">ค้นหาโน้ตบุ๊ก Ryzen 5 ดูรายการสินค้าและเลือกตัวเลือกที่น่าสนใจ</textarea>
+      </div>
+
+      <!-- Presets / Quick Demonstration Workflows -->
+      <div style="margin-bottom: 14px;">
+        <label style="margin-bottom: 8px; font-weight: 600;">💡 ตัวอย่างงานพร้อมใช้ (คลิกเลือกเพื่อเติมข้อมูลอัตโนมัติ):</label>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          <button type="button" class="secondary" style="font-size: 0.8rem; padding: 6px 12px;" onclick="applyPreset('shopee')">🛒 Shopee: ค้นหาสินค้า & เช็คราคา</button>
+          <button type="button" class="secondary" style="font-size: 0.8rem; padding: 6px 12px;" onclick="applyPreset('bot')">🏛️ ธปท.: ประกาศจัดซื้อจัดจ้าง สขร.1</button>
+          <button type="button" class="secondary" style="font-size: 0.8rem; padding: 6px 12px;" onclick="applyPreset('wiki')">📖 Wikipedia: ค้นคว้าความรู้ทั่วไป</button>
+          <button type="button" class="secondary" style="font-size: 0.8rem; padding: 6px 12px;" onclick="applyPreset('books')">📚 Books Scrape: แค็ตตาล็อกหนังสือ</button>
+          <button type="button" class="secondary" style="font-size: 0.8rem; padding: 6px 12px;" onclick="applyPreset('google')">🔍 Google: ค้นคว้าเทคโนโลยี AI</button>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <button id="startBtn" onclick="startTask()">🚀 เริ่มงาน (Start Multi-Layer Task)</button>
+        <div id="taskStatusText" style="font-size: 0.85rem; color: var(--muted);"></div>
+      </div>
+    </div>
+
+    <!-- Performance Telemetry Card -->
+    <div class="card">
+      <div class="card-title">📊 ตัวชี้วัดประสิทธิภาพ (Real-Time Performance Telemetry)</div>
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-lbl">Total Actions</div>
+          <div id="metricActions" class="metric-val">0</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-lbl">Avg Action Latency</div>
+          <div id="metricLatency" class="metric-val">0 ms</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-lbl">TTFA (First Action)</div>
+          <div id="metricTTFA" class="metric-val">0 ms</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-lbl">Success Rate</div>
+          <div id="metricSuccess" class="metric-val">100%</div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center; font-size: 0.82rem; margin-top: 6px;">
+        <span style="color: var(--muted);">สัดส่วนยุทธศาสตร์:</span>
+        <span class="strategy-pill pill-dom" id="countDom">DOM: 0</span>
+        <span class="strategy-pill pill-ax" id="countAx">Accessibility: 0</span>
+        <span class="strategy-pill pill-vision" id="countVision">Vision: 0</span>
+        <span class="strategy-pill pill-api" id="countApi">API: 0</span>
+      </div>
+    </div>
+
+    <!-- Requirement 35: OneVault Fact Audit & Spool Status Card (WO-012) -->
+    <div class="card">
+      <div class="card-title">
+        <span>🏛️ บันทึกหลักฐาน OneVault (Fact Audit & Spooling Status)</span>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <span id="vaultStatusBadge" class="badge badge-err" style="font-size: 0.75rem;">OneVault: Standalone</span>
+          <button id="btnSyncVault" class="secondary" style="font-size: 0.8rem; padding: 4px 12px;" onclick="syncVaultSpool()">🔄 ส่งซ้ำ / Sync Spool</button>
+        </div>
+      </div>
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-lbl">Pending Spool</div>
+          <div id="vaultPendingCount" class="metric-val" style="color: var(--warn);">0</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-lbl">C1 Actor Identity</div>
+          <div id="vaultActor" class="metric-val" style="font-size: 0.95rem; word-break: break-all; margin-top: 8px;">Standalone</div>
+        </div>
+        <div class="metric-card" style="grid-column: span 2;">
+          <div class="metric-lbl">Last Synced Timestamp</div>
+          <div id="vaultLastSync" class="metric-val" style="font-size: 0.95rem; margin-top: 8px;">-</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Step Log -->
+    <div class="card">
+      <div class="card-title">📝 ลำดับขั้นตอนการทำงาน (Action Steps Log)</div>
+      <div id="stepList" class="step-list">
+        <div style="color: var(--muted); font-size: 0.85rem; padding: 10px 0;">ยังไม่มีงานที่กำลังทำงาน</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentTaskId = null;
+    let pollInterval = null;
+
+    const PRESETS = {
+      shopee: {
+        url: "https://shopee.co.th/search?keyword=notebook%20ryzen%205",
+        goal: "ค้นหาโน้ตบุ๊ก Ryzen 5 ดูรายการสินค้าแรกและตรวจสอบราคา"
+      },
+      bot: {
+        url: "https://www.bot.or.th/th/news-and-media/procurement/Procurements.html",
+        goal: "สืบค้นรายงานการจัดซื้อจัดจ้าง สขร.1 ล่าสุด และตรวจสอบชื่อเอกสารรายงาน"
+      },
+      wiki: {
+        url: "https://th.wikipedia.org/wiki/%E0%B8%81%E0%B8%A3%E0%B8%B8%E0%B8%87%E0%B9%80%E0%B8%97%E0%B8%9E%E0%B8%A1%E0%B8%87%E0%B8%B2%E0%B8%99%E0%B8%84%E0%B8%A3",
+        goal: "ค้นหาข้อมูลจำนวนประชากรของกรุงเทพมหานคร และสรุปตัวเลขสถิติ"
+      },
+      books: {
+        url: "http://books.toscrape.com/catalogue/category/books/travel_2/index.html",
+        goal: "ดูรายการหนังสือหมวด Travel ค้นหาเล่มแรกและราคาขาย"
+      },
+      google: {
+        url: "https://www.google.com",
+        goal: "ค้นหา 'NVIDIA DGX Spark AI' ดูผลลัพธ์หัวข้อแรก"
+      }
+    };
+
+    function applyPreset(key) {
+      const p = PRESETS[key];
+      if (p) {
+        document.getElementById('targetUrl').value = p.url;
+        document.getElementById('targetGoal').value = p.goal;
+      }
+    }
+
+    let desktopToken = sessionStorage.getItem('desktop_token') || '';
+    let pendingApprovalInfo = null;
+
+    function initTokenUI() {
+      const input = document.getElementById('tokenInput');
+      const status = document.getElementById('tokenStatus');
+      if (desktopToken) {
+        input.value = desktopToken;
+        status.innerText = '✅ ใช้งาน Token อยู่';
+        status.style.color = 'var(--success)';
+      } else {
+        status.innerText = '⚠️ กรุณาใส่ Token เพื่อใช้งาน API';
+        status.style.color = 'var(--warn)';
+      }
+    }
+
+    function saveToken() {
+      const val = document.getElementById('tokenInput').value.trim();
+      if (!val) {
+        alert('กรุณากรอก Token');
+        return;
+      }
+      desktopToken = val;
+      sessionStorage.setItem('desktop_token', val);
+      initTokenUI();
+      checkStatus();
+    }
+
+    function getHeaders(custom = {}) {
+      const h = { 'Content-Type': 'application/json', ...custom };
+      if (desktopToken) {
+        h['X-Desktop-Token'] = desktopToken;
+      }
+      return h;
+    }
+
+    function applyPreset(key) {
+      const p = PRESETS[key];
+      if (p) {
+        document.getElementById('targetUrl').value = p.url;
+        document.getElementById('targetGoal').value = p.goal;
+      }
+    }
+
+    async function checkStatus() {
+      try {
+        const res = await fetch('/api/status', { headers: getHeaders() });
+        if (res.status === 401) {
+          const badge = document.getElementById('statusBadge');
+          badge.className = 'badge badge-err';
+          badge.innerText = `🔒 ต้องใช้ Desktop Token (401)`;
+          return;
+        }
+        const d = await res.json();
+        const badge = document.getElementById('statusBadge');
+        if (d.vllm_ready) {
+          badge.className = 'badge badge-ok';
+          badge.innerText = `● DGX Spark Brain Ready (${d.model})`;
+        } else {
+          badge.className = 'badge badge-err';
+          badge.innerText = `⚠️ ไม่พบการเชื่อมต่อ DGX Brain`;
+        }
+
+        // Takeover check
+        const banner = document.getElementById('takeoverBanner');
+        if (d.takeover_active) {
+          banner.style.display = 'flex';
+          if (d.takeover_reason) document.getElementById('takeoverReason').innerText = d.takeover_reason;
+        } else {
+          banner.style.display = 'none';
+        }
+
+        // OneVault Status check (Requirement 35)
+        if (d.onevault) {
+          const ov = d.onevault;
+          const vBadge = document.getElementById('vaultStatusBadge');
+          if (vBadge) {
+            vBadge.innerText = ov.enabled ? 'OneVault: Active' : 'OneVault: Standalone';
+            vBadge.className = ov.enabled ? 'badge badge-ok' : 'badge badge-err';
+          }
+          const pEl = document.getElementById('vaultPendingCount');
+          if (pEl) pEl.innerText = ov.spool_pending || 0;
+          const sEl = document.getElementById('vaultLastSync');
+          if (sEl) sEl.innerText = ov.last_synced_at || '-';
+          const aEl = document.getElementById('vaultActor');
+          if (aEl) aEl.innerText = ov.c1_actor || (ov.enabled ? 'C1 Unset' : 'Standalone');
+        }
+
+        // Approvals check
+        checkApprovals();
+
+        if (d.active_task_id && d.active_task_id !== currentTaskId) {
+          currentTaskId = d.active_task_id;
+          startPolling();
+        }
+      } catch (e) {}
+    }
+
+    async function syncVaultSpool() {
+      const btn = document.getElementById('btnSyncVault');
+      if (btn) { btn.disabled = true; btn.innerText = 'Syncing...'; }
+      try {
+        const res = await fetch('/api/vault/sync', { method: 'POST', headers: getHeaders() });
+        const d = await res.json();
+        alert(`OneVault Sync: ${d.flushed || 0} flushed, ${d.pending || 0} pending`);
+        checkStatus();
+      } catch (e) {
+        alert('Sync error: ' + e);
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerText = '🔄 ส่งซ้ำ / Sync Spool'; }
+      }
+    }
+
+    async function checkApprovals() {
+      try {
+        const res = await fetch('/api/approvals', { headers: getHeaders() });
+        if (res.status === 200) {
+          const list = await res.json();
+          const banner = document.getElementById('approvalBanner');
+          if (list && list.length > 0) {
+            pendingApprovalInfo = list[0];
+            banner.style.display = 'flex';
+            document.getElementById('approvalDesc').innerText = `คำขอขั้นที่ #${pendingApprovalInfo.step_num}: ${pendingApprovalInfo.description} (${pendingApprovalInfo.risk_level})`;
+          } else {
+            pendingApprovalInfo = null;
+            banner.style.display = 'none';
+          }
+        }
+      } catch (e) {}
+    }
+
+    async function submitApproval(isApproved) {
+      if (!pendingApprovalInfo) return;
+      const endpoint = isApproved ? `/api/approve/${pendingApprovalInfo.task_id}/${pendingApprovalInfo.step_num}` : `/api/reject/${pendingApprovalInfo.task_id}/${pendingApprovalInfo.step_num}`;
+      try {
+        await fetch(endpoint, { method: 'POST', headers: getHeaders() });
+        document.getElementById('approvalBanner').style.display = 'none';
+        pendingApprovalInfo = null;
+        setTimeout(checkStatus, 500);
+      } catch (e) {
+        alert('ส่งผลอนุมัติไม่สำเร็จ: ' + e);
+      }
+    }
+
+    async function openLoginBrowser() {
+      const btn = document.getElementById('loginBtn');
+      btn.disabled = true;
+      btn.innerText = 'กำลังเปิด Chrome...';
+      try {
+        await fetch('/api/open-browser', {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({url: document.getElementById('targetUrl').value || 'https://shopee.co.th', profile: 'user_login'})
+        });
+      } catch (e) {}
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.innerText = 'เปิด Chrome เพื่อล็อกอิน';
+      }, 4000);
+    }
+
+    async function triggerManualTakeover() {
+      await fetch('/api/takeover', {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({reason: 'ผู้ใช้กดปุ่ม Take Control ด้วยตนเอง'})
+      });
+      checkStatus();
+    }
+
+    async function resumeAgent() {
+      await fetch('/api/resume', { method: 'POST', headers: getHeaders() });
+      checkStatus();
+    }
+
+    async function startTask() {
+      const url = document.getElementById('targetUrl').value.trim();
+      const goal = document.getElementById('targetGoal').value.trim();
+      if (!url || !goal) return alert('กรุณากรอก URL และ Goal ให้ครบถ้วน');
+
+      const btn = document.getElementById('startBtn');
+      btn.disabled = true;
+      document.getElementById('taskStatusText').innerText = 'กำลังเริ่มงาน...';
+      document.getElementById('stepList').innerHTML = '';
+
+      try {
+        const res = await fetch('/api/task', {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({url, goal})
+        });
+        const d = await res.json();
+        if (d.task_id) {
+          currentTaskId = d.task_id;
+          startPolling();
+        } else {
+          alert(d.error || 'เกิดข้อผิดพลาดในการเริ่มงาน');
+          btn.disabled = false;
+        }
+      } catch (e) {
+        alert('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้: ' + e);
+        btn.disabled = false;
+      }
+    }
+
+    function startPolling() {
+      if (pollInterval) clearInterval(pollInterval);
+      pollInterval = setInterval(pollTask, 800);
+    }
+
+    async function pollTask() {
+      if (!currentTaskId) return;
+      try {
+        const res = await fetch(`/api/task/${currentTaskId}`, { headers: getHeaders() });
+        const d = await res.json();
+        
+        document.getElementById('taskStatusText').innerText = `สถานะ: ${d.status || 'running'}`;
+
+        // Render Telemetry
+        const tel = d.telemetry || {};
+        if (tel.total_actions !== undefined) {
+          document.getElementById('metricActions').innerText = tel.total_actions;
+          document.getElementById('metricLatency').innerText = `${tel.avg_action_ms || 0} ms`;
+          document.getElementById('metricTTFA').innerText = `${tel.ttfa_ms || 0} ms`;
+          document.getElementById('metricSuccess').innerText = `${Math.round((tel.success_rate || 1.0) * 100)}%`;
+
+          const strats = tel.strategies || {};
+          document.getElementById('countDom').innerText = `DOM: ${strats.dom || 0}`;
+          document.getElementById('countAx').innerText = `Accessibility: ${strats.accessibility || 0}`;
+          document.getElementById('countVision').innerText = `Vision: ${strats.vision || 0}`;
+          document.getElementById('countApi').innerText = `API: ${strats.direct_api || 0}`;
+        }
+
+        // Render Steps
+        const steps = d.steps || [];
+        if (steps.length > 0) {
+          let html = '';
+          steps.forEach((s, idx) => {
+            const stratClass = s.strategy === 'accessibility' ? 'pill-ax' : (s.strategy === 'vision' ? 'pill-vision' : 'pill-dom');
+            html += `
+              <div class="step-item">
+                <div class="step-left">
+                  <span class="step-num">#${idx + 1}</span>
+                  <span class="strategy-pill ${stratClass}">${s.strategy || 'dom'}</span>
+                  <span class="step-act">${s.action}</span>
+                  <span class="step-target">${s.target || ''}</span>
+                </div>
+                <div class="step-ms">${s.elapsed_ms || 0} ms</div>
+              </div>
+            `;
+          });
+          document.getElementById('stepList').innerHTML = html;
+        }
+
+        if (d.status && d.status !== 'running') {
+          clearInterval(pollInterval);
+          document.getElementById('startBtn').disabled = false;
+        }
+      } catch (e) {}
+    }
+
+    initTokenUI();
+    setInterval(checkStatus, 3000);
+    checkStatus();
+
+  </script>
+</body>
+</html>

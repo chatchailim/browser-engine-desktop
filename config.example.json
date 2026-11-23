@@ -1,0 +1,62 @@
+{
+  "vllm_url": "http://your-llm-host.local/vllm/v1",
+  "ai_endpoints": [
+    "http://your-llm-host.local/vllm/v1"
+  ],
+  "vllm_key_path": "C:\\Users\\chatc\\.dgx\\vllm-api-key",
+  "model": "Qwen3.8-27B",
+  "port": 8205,
+  "task_slots": 1,
+  "task_queue_cap": 20,
+  "browser_channel": "chrome",
+  "headless": false,
+  "user_data_dir": "./data/profile",
+  "downloads_dir": "./data/downloads",
+  "planner_timeout_seconds": 90,
+  "recipe_cache_enabled": true,
+  "desktop_autonomy_enabled": true,
+  "desktop_autonomy_allowed_apps": [
+    "C:\\Windows\\System32\\notepad.exe"
+  ],
+  "shell_execution_enabled": true,
+  "shell_elevated_allowed": true,
+  "shell_timeout_seconds": 600,
+  "shell_sandbox_mode": true,
+  "keysign_policy": "audit",
+  "roles_enabled": true,
+  "planner_tiering_enabled": true,
+  "planner_tier_small_model": "qwen3:4b-instruct-2507-q4_K_M",
+  "planner_tier_small_timeout_seconds": 60,
+  "planner_tier_small_max_tokens": 1500,
+  "planner_tier_easy_urls": [
+    "books.toscrape.com",
+    "en.wikipedia.org"
+  ],
+  "unrestricted_desktop": {
+    "blocked_executables_bypass": false,
+    "modifiers_bypass": false,
+    "blocked_titles_bypass": false,
+    "password_input": false,
+    "elevated_window_interact": false,
+    "bound_bypass": false
+  },
+  "timeout_seconds": 300,
+  "default_max_steps": 15,
+  "vision_enabled": false,
+  "vision_endpoint": "http://your-llm-host.local/ai/api/generate",
+  "vision_model": "qwen2.5vl:7b",
+  "vision_min_confidence": 0.75,
+  "vision_image_retention_hours": 24,
+  "vision_timeout_seconds": 120,
+  "vision_keep_alive": "5m",
+  "onevault_enabled": false,
+  "onevault_dir": "./onevault",
+  "trace_retention_days": 90,
+  "spool_dir": "./data/spool",
+  "max_spool_size": 1000,
+  "direct_api_enabled": false,
+  "direct_api_recipes_file": "./api_recipes.json",
+  "direct_api_allowed_hosts": [],
+  "uia_enabled": false,
+  "uia_allowed_apps": []
+}

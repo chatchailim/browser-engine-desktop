@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Protected Portal — Security Challenge</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 40px; background: #f8fafc; color: #1e293b; }
+        .card { background: white; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); padding: 24px; max-width: 600px; margin: 0 auto; text-align: center; }
+        .challenge-box { background: #f1f5f9; border: 2px dashed #cbd5e1; border-radius: 8px; padding: 20px; margin: 20px 0; }
+        .btn-human { background: #0284c7; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 12px; }
+        #protected-content { display: none; text-align: left; }
+        .metric-badge { background: #e0f2fe; color: #0369a1; padding: 8px 16px; border-radius: 6px; font-size: 18px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div id="challenge-section">
+            <h2>Security Verification Required</h2>
+            <p>Please complete the security challenge below to access the protected portal.</p>
+            <div class="challenge-box">
+                <!-- Cloudflare Turnstile detection signal -->
+                <iframe id="cf-turnstile-frame" src="https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/turnstile/if/ov2/av0/rcv0/0/dummy" width="300" height="65" style="border:none;"></iframe>
+                <br>
+                <button id="btn-solve-human" class="btn-human" onclick="solveChallenge()">I am human (Simulate Manual Solve)</button>
+            </div>
+            <p style="font-size: 12px; color: #64748b;">Human Takeover Mode will engage when this page is loaded.</p>
+        </div>
+
+        <div id="protected-content">
+            <h2 style="color: #0f172a;">Portal Dashboard — Verified Access</h2>
+            <p>Protected Business Metrics:</p>
+            <div class="metric-badge" id="protected-metric">Quarterly Active Users: 42,910</div>
+            <p id="portal-status" style="margin-top: 16px; color: #166534; font-weight: 600;">Status: Access Granted After Security Verification</p>
+        </div>
+    </div>
+
+    <script>
+        function solveChallenge() {
+            var frame = document.getElementById('cf-turnstile-frame');
+            if (frame) frame.remove();
+            document.getElementById('challenge-section').style.display = 'none';
+            document.getElementById('protected-content').style.display = 'block';
+            window.challengeSolved = true;
+        }
+
+        // Poll server endpoint to see if human solved challenge
+        setInterval(function() {
+            fetch('/api/botwall_status')
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    if (data && data.solved) {
+                        solveChallenge();
+                    }
+                }).catch(function() {});
+        }, 150);
+    </script>
+</body>
+</html>

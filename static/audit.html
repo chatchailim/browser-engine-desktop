@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ตรวจย้อน — Browser Engine Desktop (UI-05)</title>
+<style>
+:root{
+  --bg:#0f172a;--card:#1e293b;--border:#334155;--primary:#38bdf8;--primary-hover:#0ea5e9;
+  --text:#f8fafc;--muted:#94a3b8;--success:#4ade80;--warn:#facc15;--danger:#f87171;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system,'Segoe UI',sans-serif}
+body{background:var(--bg);color:var(--text);padding:20px}
+.container{max-width:1150px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:12px}
+h1{font-size:1.3rem;color:var(--primary);display:flex;align-items:center;gap:8px}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:9999px;font-size:.75rem;border:1px solid var(--muted);color:var(--muted)}
+.badge-ok{background:rgba(74,222,128,.12);color:var(--success);border-color:var(--success)}
+.badge-bad{background:rgba(248,113,113,.12);color:var(--danger);border-color:var(--danger)}
+.badge-warn{background:rgba(250,204,21,.12);color:var(--warn);border-color:var(--warn)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+table{width:100%;border-collapse:collapse;font-size:.8rem}
+th{color:var(--muted);text-align:left;border-bottom:1px solid var(--border);padding:6px 8px;font-size:.7rem;letter-spacing:.04em}
+td{border-bottom:1px solid var(--border);padding:6px 8px;vertical-align:top;font-variant-numeric:tabular-nums}
+button{background:var(--primary);color:#04121f;border:none;border-radius:8px;padding:8px 16px;font-size:.9rem;font-weight:600;cursor:pointer}
+button:hover{background:var(--primary-hover)}
+button.ghost{background:transparent;color:var(--muted);border:1px solid var(--border);font-weight:400;padding:6px 12px}
+.file-btn{display:block;width:100%;text-align:left;background:transparent;color:var(--text);border:1px solid var(--border);font-weight:400;padding:8px 12px;margin-bottom:6px;font-size:.82rem}
+.file-btn:hover{border-color:var(--primary);color:var(--primary)}
+.file-btn.active{border-color:var(--primary);background:rgba(56,189,248,.08)}
+.muted{color:var(--muted);font-size:.78rem}
+.hint{font-size:.75rem;color:var(--muted);margin-top:6px}
+a{color:var(--muted);font-size:.75rem}
+.verify-box{border-radius:10px;padding:12px;margin-top:10px;display:none;font-size:.9rem}
+.verify-ok{border:1px solid var(--success);background:rgba(74,222,128,.07)}
+.verify-bad{border:1px solid var(--danger);background:rgba(248,113,113,.07)}
+.sig-head{font-family:monospace;font-size:.72rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+  <h1>🔍 ตรวจย้อน <span class="muted" style="font-size:.8rem">(UI-05 — โชห่วยรายคำสั่ง + verify 1 คลิก)</span></h1>
+  <div style="display:flex;gap:8px;align-items:center">
+    <span class="badge" id="policy-badge">keysign: ...</span>
+    <a href="/lab">← ห้องทดลอง</a><a href="/members">สิทธิ์/สมาชิก →</a><a href="/help">❓ Help</a>
+  </div>
+</header>
+
+<div class="card">
+  <div style="display:flex;gap:20px">
+    <div style="flex:0 0 320px">
+      <h2 style="font-size:1rem;margin-bottom:8px">ไฟล์หลักฐาน</h2>
+      <div class="muted" style="margin-bottom:6px">Shell (คำสั่งระบบ — sandbox+signature)</div>
+      <div id="shell-files"></div>
+      <div class="muted" style="margin:10px 0 6px">Desktop input (คลิก/พิมพ์บนจอ)</div>
+      <div id="desktop-files"></div>
+    </div>
+    <div style="flex:1">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px">
+        <h2 style="font-size:1rem">รายงานคำสั่งล่าสุด <span class="muted" id="file-name"></span></h2>
+        <button id="verify-btn" disabled>🧾 Verify โซ่ลายเซ็น (1 คลิก)</button>
+      </div>
+      <div style="max-height:430px;overflow:auto">
+        <table>
+          <thead><tr><th>seq</th><th>เวลา</th><th>ที่มา</th><th>ชนิด</th><th>คำสั่ง/เจตนา</th><th>exit</th><th>sandboxแก้ไฟล์</th><th>ลายเซ็น</th></tr></thead>
+          <tbody id="entries-body"><tr><td colspan="8" class="muted">เลือกไฟล์ด้านซ้าย</td></tr></tbody>
+        </table>
+      </div>
+      <div class="verify-box" id="verify-ok">
+        <b style="color:var(--success)">✅ โซ่ลายเซ็นครบถ้วน — ทุกคำสั่งลงลายเซ็นต่อเนื่อง แก้ย้อนหลังจับได้</b>
+        <div class="muted" id="verify-ok-detail"></div>
+      </div>
+      <div class="verify-box" id="verify-bad">
+        <b style="color:var(--danger)">❌ โซ่ลายเซ็นไม่ผ่าน — มีการแก้ไข/คำสั่งไม่ได้ลงลายเซ็น</b>
+        <div class="muted" id="verify-bad-detail"></div>
+      </div>
+    </div>
+  </div>
+  <div class="hint">หลักการ: ทุกคำสั่งที่ AI รัน (shell/desktop) ถูกลงบัญชีลายเซ็นต่อกัน (ต่อจากลายเซ็นเดิม — Ed25519) — verify เดินตรวจทั้งไฟล์รอบเดียว · pubkey: <span id="pubkey" class="sig-head"></span></div>
+</div>
+</div>
+
+<script>
+const TOKEN=sessionStorage.getItem('desktop_token')||'';
+function withAuth(h){h=h||{};h['X-Desktop-Token']=TOKEN;return h;}
+async function j(u,o){o=o||{};o.headers=withAuth(o.headers);
+  let r;try{r=await fetch(u,o);}catch(e){return {error:'หลุดการเชื่อมต่อ server'};}
+  if(r.status===401)return {error:'401 — ต้องใช้ token (เปิด /lab วาง token ก่อน)'};
+  return r.json();}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+let CURRENT=null;
+function fmtKB(n){return n>=1024?(n/1024).toFixed(1)+' KB':n+' B';}
+function listFiles(sel,items){
+  const el=document.getElementById(sel);el.innerHTML='';
+  (items||[]).forEach(([name,size])=>{
+    const b=document.createElement('button');b.className='file-btn';
+    b.textContent=`${name} (${fmtKB(size)})`;
+    b.onclick=()=>{document.querySelectorAll('.file-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');loadManifest(name);};
+    el.appendChild(b);
+  });
+  if(!(items||[]).length)el.innerHTML='<div class="muted">ยังไม่มีไฟล์</div>';
+}
+async function loadList(){
+  const d=await j('/api/audit/list');
+  if(d.error){document.getElementById('shell-files').innerHTML=`<div class="muted">${esc(d.error)}</div>`;return;}
+  const pb=document.getElementById('policy-badge');
+  pb.textContent='keysign: '+(d.keysign_policy||'?')+' · pubkey '+(d.pubkey_head||'—');
+  pb.className='badge '+(d.keysign_policy==='enforce'?'badge-ok':'badge-warn');
+  document.getElementById('pubkey').textContent=d.pubkey_head||'';
+  listFiles('shell-files',d.shell);
+  listFiles('desktop-files',d.desktop_input);
+}
+async function loadManifest(name){
+  CURRENT=name;
+  document.getElementById('file-name').textContent='— '+name;
+  document.getElementById('verify-btn').disabled=false;
+  document.getElementById('verify-ok').style.display='none';
+  document.getElementById('verify-bad').style.display='none';
+  const d=await j('/api/audit/manifest?file='+encodeURIComponent(name));
+  if(d.error){document.getElementById('entries-body').innerHTML=`<tr><td colspan="8" class="muted">${esc(d.error)}</td></tr>`;return;}
+  const tb=document.getElementById('entries-body');
+  tb.innerHTML=(d.entries||[]).map(e=>`<tr>
+    <td class="muted">${esc(e.seq)}</td><td class="muted">${esc((e.timestamp||'').slice(11,19))}</td>
+    <td><span class="muted">${esc(e.source)}</span></td><td class="muted">${esc(e.kind)}</td>
+    <td>${esc(e.cmd)}</td><td>${esc(e.exit==null?'—':e.exit)}</td><td>${esc(e.sandbox==null?'—':e.sandbox)}</td>
+    <td class="sig-head">${esc((e.sig||'unsigned').slice(0,18))}…</td></tr>`).join('')
+    ||'<tr><td colspan="8" class="muted">ไฟล์ว่าง</td></tr>';
+}
+document.getElementById('verify-btn').onclick=async()=>{
+  if(!CURRENT)return;
+  const d=await j('/api/audit/manifest?file='+encodeURIComponent(CURRENT)+'&verify=1');
+  const v=d.verify||{};const okBox=document.getElementById('verify-ok'),badBox=document.getElementById('verify-bad');
+  if(v.valid===true){okBox.style.display='block';
+    document.getElementById('verify-ok-detail').textContent=`${v.entries} รายการ · ed25519 ${v.schemes?.ed25519||0} · HMAC ${v.schemes?.hmac||0} · unsigned ${v.schemes?.unsigned||0} · ตรวจ ${v.checked_at}`;}
+  else if(v.valid===false){badBox.style.display='block';
+    document.getElementById('verify-bad-detail').textContent='ปัญหาแรก: '+JSON.stringify(v.first_problem);}
+  else{badBox.style.display='block';document.getElementById('verify-bad-detail').textContent=esc(v.error||'ตรวจไม่ได้');}
+};
+loadList();
+</script>
+</body>
+</html>

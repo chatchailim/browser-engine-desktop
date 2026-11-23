@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>คู่มือใช้งาน — SPADA MyAI Harness</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+:root{color-scheme:light dark}
+body{margin:0;padding:0;background:var(--card,#fff);color:var(--foreground,#1a1a1a);font-family:system-ui,'Segoe UI',sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:24px 18px 60px}
+h1{font-size:22px;margin:0 0 4px}
+.sub{color:var(--muted-foreground,#666);font-size:13px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+h2{font-size:17px;margin:26px 0 8px;padding-top:14px;border-top:1px solid var(--border)}
+h3{font-size:14.5px;margin:18px 0 6px}
+p,li{font-size:13.5px;line-height:1.65}
+table{width:100%;border-collapse:collapse;font-size:12.8px;margin:8px 0}
+th{text-align:left;color:var(--muted-foreground,#666);border-bottom:1px solid var(--border);padding:5px 7px}
+td{border-bottom:1px solid var(--border);padding:5px 7px;vertical-align:top}
+code,.mono{font-family:ui-monospace,Consolas,monospace;font-size:12px;background:var(--border,#eee);border-radius:4px;padding:1px 5px}
+pre{background:var(--border,#eee);border-radius:8px;padding:12px;overflow-x:auto;font-size:12px;line-height:1.5}
+.btn{display:inline-block;margin:2px;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--foreground);text-decoration:none;font-size:13px}
+.btn:hover{border-color:var(--accent)}
+.ok{color:#0a8a4a}.warn{color:#b8860b}.bad{color:#d33}
+.callout{border-left:3px solid var(--accent);padding:8px 12px;background:var(--border,#f6f6f6);border-radius:0 8px 8px 0;margin:10px 0;font-size:13px}
+.mermaid{background:#fbfbfd;border:1px solid var(--border);border-radius:10px;padding:10px;margin:12px 0;text-align:center}
+.toc{columns:2;column-gap:28px;font-size:13px}
+.toc a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body><div class="wrap">
+
+<h1>📖 คู่มือใช้งาน — SPADA MyAI Harness</h1>
+<div class="sub">ระบบผู้ช่วย AI ลงมือทำแทนคุณ (Browser / Computer / Shell use) · เวอร์ชัน 2.0 · 5 ต.ค. 2026 · <a class="btn" href="/lab">← กลับห้องทดลอง</a> <a class="btn" href="/">Dashboard</a></div>
+
+<div class="callout">💡 คู่มือฉบับเต็ม (ไฟล์ markdown พร้อมพิมพ์/แนบงาน): <code class="mono">coordination/codex-anti/codex-output/WO-018/readme.md</code> — หน้านี้คือฉบับอ่านบนจอ ครบเท่ากัน</div>
+
+<h2 id="toc">สารบัญ</h2>
+<div class="toc">
+  <div>0. <a href="#c0">ระบบนี้คืออะไร + ศัพท์เทคนิกทุกคำ</a></div>
+  <div>1. <a href="#c1">เริ่มระบบ 5 ขั้น (10 นาทีแรก)</a></div>
+  <div>2. <a href="#c2">ใช้งานประจำวัน (เว็บ/เดสก์ท็อป/shell/หยุด/กู้คืน/ตรวจย้อน)</a></div>
+  <div>3. <a href="#c3">การไหลของระบบ — แผนภาพ 4 ภาพ</a></div>
+  <div>4. <a href="#c4">สิทธิ์ 3 ระดับ + ธงกติกาทั้งหมด</a></div>
+  <div>5. <a href="#c5">ปัญหาประจำวัน → วิธีแก้ (จากเหตุจริง)</a></div>
+  <div>6. <a href="#c6">ความปลอดภัย — กติกาผู้ใช้ทุกคน</a></div>
+  <div>7. <a href="#c7">API อ้างอิงเร็ว (ตาราง)</a></div>
+  <div>8. <a href="#c8">ก้าวถัดไปเมื่อชำนาญ</a></div>
+</div>
+
+<h2 id="c0">บทที่ 0 — ระบบนี้คืออะไร</h2>
+<p><b>ระบบนี้คือ "ผู้ช่วย AI ที่ลงมือทำแทนคุณได้จริง" บนเครื่อง Windows ของคุณเอง</b> — ต่างจาก ChatGPT ที่เสนอแนะ ระบบนี้<b>ลงมือทำให้จบ</b> แต่ทุกการกระทำมีรอยเท้า+ลายเซ็นกันแก้+กู้คืนได้</p>
+<table>
+<tr><th>ความสามารถ</th><th>คุณสั่ง</th><th>AI ทำ</th></tr>
+<tr><td>🌐 Browser use</td><td>"เปิดเว็บ X หาข้อมูล Y"</td><td>ไข่ คลิก อ่าน ดึงคำตอบ พร้อมหลักฐาน</td></tr>
+<tr><td>🖥️ Computer use</td><td>"เปิดโน้ตแพด พิมพ์ 3 บรรทัด"</td><td>จับหน้าจอ วางแผน ลงมือ — คุณอนุมัติก่อนทุกงาน</td></tr>
+<tr><td>⌨️ Shell use (admin)</td><td>"รันคำสั่งนี้"</td><td>รันจริงใน sandbox + rollback ได้เสมอ</td></tr>
+</table>
+<p><b>ตัวเลขจริงที่พิสูจน์แล้ว</b>: งานเดิมเร็วขึ้น 2.1–4 เท่า (21.9วิ → 5.4วิ) · เทสต์ 194/194 · งานแคช = "สูตรวิธีทำ" <b>ไม่ใช่คำตอบ</b> — คำตอบยังมาจากแหล่งจริงทุกครั้ง</p>
+
+<h3>ศัพท์เทคนิกทุกคำ (ตารางเต็มใน readme.md บท 0)</h3>
+<table>
+<tr><th>คำ</th><th>แปลง่าย ๆ</th></tr>
+<tr><td><b>Task / Goal</b></td><td>งาน 1 โจทย์ที่คุณสั่ง + ข้อความสั่ง</td></tr>
+<tr><td><b>Planner</b></td><td>AI ตัวคิด — แตกโจทย์เป็นขั้นตอน (วิ่งบน DGX)</td></tr>
+<tr><td><b>Step / Subtask</b></td><td>ขั้นตอนย่อย 1 ขั้น เช่น "คลิกหมวด Travel"</td></tr>
+<tr><td><b>Manifest</b></td><td>สมุดทะเบียนทุกคำสั่งที่ AI เคยทำ — อ่านย้อนได้</td></tr>
+<tr><td><b>Keysign / Chain</b></td><td>ลายเซ็นดิจิทัลประจำคำสั่งโยงเป็นห่วง — แก้สมุดย้อนหลัง = ห่วงขาด = จับได้</td></tr>
+<tr><td><b>Recipe cache</b></td><td>ระบบจำ "สูตรทำงานสำเร็จแล้ว" → งานเดิมเร็วขึ้นมาก (ไม่จำคำตอบ!)</td></tr>
+<tr><td><b>Token</b></td><td>บัตรผ่านประตู 64 ตัวอักษร — 3 ระดับ: admin &gt; operator &gt; viewer</td></tr>
+<tr><td><b>Sandbox / Rollback</b></td><td>ห้องทดลองกันพัง + ปุ่ม "กลับเหมือนเดิม" ของไฟล์</td></tr>
+<tr><td><b>Approval</b></td><td>AI หยุดรอคุณกดอนุมัติ — <b>ไม่กด = ไม่ทำ</b> (หมดเวลา = ปฏิเสธเอง)</td></tr>
+<tr><td><b>Takeover / Bot wall</b></td><td>เว็บกันบอท/สิ่ง AI เล่นไม่ได้ → ระบบส่งมอบให้ "คุณ" ทำเอง</td></tr>
+<tr><td><b>Risk level</b></td><td>เกรดความอันตรายคำสั่ง 0–3 — สูง = ต้องกดอนุมัติ</td></tr>
+<tr><td><b>Trace</b></td><td>ไฟล์รอยเท้ารายขั้นของงาน — ใช้วินิจฉัยเวลาพัง</td></tr>
+<tr><td><b>DGX / vLLM</b></td><td>เครื่อง AI Brain (วางแผน) — ไม่ตอบ = AI วิ่งไม่ได้ ป้ายจะโชว์</td></tr>
+<tr><td><b>Profile</b></td><td>โปรไฟล์เบราว์เซอร์ที่ล็อกอินแล้ว — งานที่ต้องล็อกอินใช้ซ้ำได้</td></tr>
+<tr><td><b>Config / ธง</b></td><td>ไฟล์กติกา — ธงอันตรายทุกตัวอยู่นี่ <b>ห้ามแก้เองข้ามอนุมัติ</b></td></tr>
+</table>
+
+<h2 id="c1">บทที่ 1 — เริ่มระบบ 5 ขั้น</h2>
+<h3>ขั้น 1 เปิดระบบ</h3>
+<pre>ดับเบิลคลิก run.cmd → รอขึ้น: "running at http://127.0.0.1:8205"</pre>
+<h3>ขั้น 2 คัดลอกกุญแจ</h3>
+<pre>รัน copy-token.cmd (token เข้า clipboard โดยไม่โชว์ค่า)</pre>
+<h3>ขั้น 3 เข้าห้องทดลอง + วางกุญแจ</h3>
+<pre>เปิด http://127.0.0.1:8205/lab → วาง Token (Ctrl+V) → บันทึก
+ผลที่ต้องเห็น: ป้ายเขียว "พร้อมใช้งาน"</pre>
+<h3>ขั้น 4 สั่งงานแรก</h3>
+<pre>URL: https://books.toscrape.com/
+Goal: หาราคาเล่มแรกในหมวด Travel
+กด "▶ สั่งทำงาน" → รอ 10–25 วิ (ครั้งแรก AI วางแผน)
+ผลที่ต้องเห็น: คำตอบ £45.17 + ทุกขั้นสีเขียว</pre>
+<h3>ขั้น 5 สั่งซ้ำ — เห็นพลังจำสูตร</h3>
+<pre>สั่ง goal เดิม → เวลา planning: วินาที → ไม่กี่มิลลิวินาที · ทั้งงาน 5 วิ (จาก 21 วิ)</pre>
+
+<h2 id="c2">บทที่ 2 — ใช้งานประจำวัน</h2>
+<h3>สั่งงานเว็บ</h3>
+<p>Goal ดี = <b>เป้าเดียว ชัด จบด้วยคำตอบที่ระบุได้</b> — "หาราคา X จากหน้านี้" ดีกว่า "ดู ๆ ทุกอย่าง"</p>
+<h3>สั่งงานเดสก์ท็อป</h3>
+<p>แท็บ Computer Use → ใส่เป้า → AI เปิดโปรแกรมแล้ว<b>หยุดโชว์ popup ให้คุณตัดสินใจ</b> → กดอนุมัติถึงลงมือ (ไม่กด = ยกเลิกเองใน ~20 วิ)</p>
+<h3>Shell (admin เท่านั้น)</h3>
+<p>คำสั่งระบบผ่าน <code class="mono">POST /api/shell-run</code> — ทุกคำสั่งมี snapshot ก่อน-หลัง — ทำพังกู้คืนด้วย <code class="mono">POST /api/shell-rollback</code> (พิสูจน์แล้ว: ไฟล์ถูกทำลาย กลับมาเหมือนเดิมจริง)</p>
+<h3>หยุดงานทันที</h3>
+<p>กด <b>⏹ หยุด</b> ใต้งานที่วิ่ง (หรือ POST <code class="mono">/api/task-cancel</code>) — AI จบที่ขั้นปัจจุบันโดยไม่เดินหน้า — สั่งงานใหม่ได้ทันที</p>
+<h3>ตรวจย้อน AI ทำอะไรไปแล้ว</h3>
+<pre>type data\action-manifest\app-YYYY-MM-DD.jsonl   (ทุกคำสั่ง+ลายเซ็น)
+python -c "from service import keysign; import glob; print(keysign.verify_chain(glob.glob('data/action-manifest/app-*.jsonl')[-1]))"
+→ {"valid": true} = ระเบียนพร้อมรอยเท้าสมบูรณ์ · valid false = มีการแก้ระเบียน — รายงานทันที</pre>
+
+<h2 id="c3">บทที่ 3 — การไหลของระบบ (แผนภาพ)</h2>
+<p>แผนภาพทั้ง 4 ภาพ (ภาพรวม / งานเว็บ / งานเดสก์ท็อป / sandbox shell) — ฉบับเต็มอยู่ readme.md บท 3 — หน้านี้แสดงภาพหลัก:</p>
+
+<div class="mermaid">
+flowchart TB
+  U["👤 คุณ/สมาชิก<br/>(token + role)"] -->|สั่งงาน goal| L["🧪 Lab UI"]
+  U -->|admin สั่งคำสั่ง| SH["⌨️ Shell use"]
+  L -->|POST + token| S["⚙️ Server<br/>ตรวจ token → จอง slot → ธงกติกา"]
+  S --> P["🧠 Planner AI (DGX)<br/>แตก goal เป็นลำดับขั้น"]
+  P --> V{"🛡️ Risk Gate — ต่อขั้น"}
+  V -- "0-1 ปลอดภัย" --> E["▶ Executor เว็บ/เดสก์ท็อป"]
+  V -- "2-3 อันตราย" --> A["⏸ popup อนุมัติ<br/>ไม่กด = ไม่ทำ"]
+  A -- "อนุมัติ" --> E
+  SH --> SB["📦 Sandbox<br/>ถ่ายรูปไฟล์ก่อน-หลัง + กู้คืนได้"]
+  E --> M["📜 Manifest + 🔐 Keysign chain<br/>ทุกคำสั่งเซ็น — แก้ย้อนจับได้"]
+  E -- "สำเร็จ" --> RC["💾 จำสูตร → งานถัดไปเร็ว 2–4×"]
+  E -- "ล้ม" --> RC2["🔥 ลืมสูตร → กันสูตรพังใช้ซ้ำ"]
+  M --> TL["💾 Tasklog — restart แล้วงานไม่หาย"]
+</div>
+
+<h2 id="c4">บทที่ 4 — สิทธิ์ & ธงกติกา</h2>
+<table>
+<tr><th>ทำอะไร</th><th>viewer</th><th>operator</th><th>admin</th></tr>
+<tr><td>อ่านสถานะ/ผลงาน</td><td class="ok">✅</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+<tr><td>สั่งเว็บ/เดสก์ท็อป + อนุมัติ + หยุดงาน</td><td class="bad">❌ 403</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+<tr><td>shell rollback</td><td class="bad">❌</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+<tr><td>รันคำสั่ง shell</td><td class="bad">❌</td><td class="bad">❌ 403</td><td class="ok">✅ (ธง on)</td></tr>
+</table>
+<p>สร้าง token สมาชิก (ผู้ดูแล): <code class="mono">provision\member_token.cmd ชื่อ operator</code></p>
+<table>
+<tr><th>ธง (config.json)</th><th>ค่าเริ่ม Node</th><th>เปิดแล้ว</th></tr>
+<tr><td>recipe_cache_enabled</td><td class="ok">on</td><td>จำสูตร เร็ว 2–4×</td></tr>
+<tr><td>roles_enabled</td><td class="ok">on</td><td>สิทธิ์ 3 ระดับ</td></tr>
+<tr><td>keysign_policy</td><td class="warn">audit</td><td>เซ็นทุกคำสั่ง — enforce = ไม่มีกุญแจไม่วิ่ง</td></tr>
+<tr><td>shell_execution_enabled</td><td class="bad">off</td><td>AI รันคำสั่งระบบ (ปลดผ่าน Config Approval เท่านั้น)</td></tr>
+<tr><td>shell_elevated_allowed</td><td class="bad">off</td><td>คำสั่ง admin — <b>UAC ขึ้นให้คนกดเสมอ</b></td></tr>
+<tr><td>shell_sandbox_mode</td><td class="ok">on</td><td>ภาพถ่ายไฟล์ + กู้คืนรอบคำสั่ง</td></tr>
+<tr><td>desktop_autonomy</td><td class="ok">on (allowlist)</td><td>สั่งงานเดสก์ท็อปต่องาน + popup</td></tr>
+</table>
+<div class="callout">🔒 <b>หลักเหล็ก</b>: ปิดทุกธง = พฤติกรรมเดิม 100% (ยืนยันเทสต์ 194/194 ก่อน-หลัง) — แก้กติกาต้องผ่าน Config Version + Approval ต่างตัวตน — ห้ามแก้ config.json ข้ามกระบวนการ</div>
+
+<h2 id="c5">บทที่ 5 — ปัญหาประจำวัน → วิธีแก้</h2>
+<table>
+<tr><th>อาการ</th><th>แปลว่า</th><th>ทำยังไง</th></tr>
+<tr><td>ป้ายเหลือง "ต้องวาง Token"</td><td>ยังไม่ได้วาง</td><td>copy-token.cmd → Ctrl+V → บันทึก</td></tr>
+<tr><td>ป้ายขาว "หลุดชั่วคราว"</td><td>server รีเซ็ตชั่วคราว</td><td>รอ 5–10 วิ — auto-retry เอง</td></tr>
+<tr><td>ป้ายแดง "server ปิด"</td><td>หน้าต่าง run.cmd ถูกปิด</td><td>เปิดใหม่ — งานค้างไม่หาย (tasklog)</td></tr>
+<tr><td>409 "already running"</td><td>งานเดิมยึด slot</td><td>รอจบ หรือ /api/task-cancel</td></tr>
+<tr><td>403 "shell_execution_disabled"</td><td>ธง shell ปิด (ค่าปล่อย)</td><td>ปลดผ่าน Config Version + Approval — ห้ามแก้เอง</td></tr>
+<tr><td>401 ทุก call</td><td>token ผิด/คนละเครื่อง</td><td>copy-token.cmd ใหม่ที่เครื่องนั้น</td></tr>
+<tr><td>planning ช้า</td><td>DGX ไม่ตอบ</td><td>ดูสถานะ DGX บน lab — เครือข่าย/DGX บน/ล่ม</td></tr>
+<tr><td>งาน ended_at_restart</td><td>server ดับกลางงาน</td><td>ไม่เดินต่อเอง (fail-closed) — สั่งใหม่</td></tr>
+</table>
+
+<h2 id="c6">บทที่ 6 — กติกาความปลอดภัยทุกคนต้องรู้</h2>
+<p>1. <b>Token = บัตรผ่านประตู</b> — ห้ามส่งแชท/อีเมล/สกรีนช็อต</p>
+<p>2. <b>ทุกคำสั่ง AI มีลายเซ็นโซ่</b> — verify แล้ว valid=false = มีการแก้ระเบียน — แจ้งผู้ดูแลทันที</p>
+<p>3. <b>ปลดธงอันตราย = ผ่าน Config Version + Approval</b> — ห้ามงัด config.json ตรง</p>
+<p>4. <b>UAC ขึ้นให้คนกดเสมอ</b> — AI กดแทนไม่ได้เชิงเทคนิค (secure desktop ของ Windows)</p>
+<p>5. <b>lsass/system ปิดถาวรในโค้ด</b> — ไม่มีธงปลด — ใครบอกปลดได้คือของผิดชุดโค้ด/ปลอม</p>
+<p>6. <b>ของลับจริงอยู่ในไฟล์สิทธิ์เดียว</b> — ระบบ redact คำสำคัญในผลอัตโนมัติ (token/password/api key)</p>
+
+<h2 id="c7">บทที่ 7 — API อ้างอิงเร็ว</h2>
+<table>
+<tr><th>คำสั่ง</th><th>ทำอะไร</th><th>สิทธิ์ต่ำสุด</th></tr>
+<tr><td class="mono">POST /api/task</td><td>สั่งงานเว็บ {url, goal, max_steps}</td><td>operator</td></tr>
+<tr><td class="mono">POST /api/desktop-task</td><td>สั่งเดสก์ท็อป {goal, allow_apps}</td><td>operator</td></tr>
+<tr><td class="mono">POST /api/shell-run</td><td>รันคำสั่ง {command, cwd}</td><td>admin</td></tr>
+<tr><td class="mono">POST /api/shell-rollback</td><td>กู้ไฟล์คำสั่งล่าสุด</td><td>operator</td></tr>
+<tr><td class="mono">POST /api/task-cancel</td><td>หยุดงาน {task_id}</td><td>operator</td></tr>
+<tr><td class="mono">GET /api/status</td><td>สถานะระบบ+DGX</td><td>ทุก role</td></tr>
+<tr><td class="mono">GET /api/tasks · /api/task/&lt;id&gt;</td><td>รายการงาน/งานเดี่ยว</td><td>ทุก role</td></tr>
+<tr><td class="mono">GET /api/approvals</td><td>งานรออนุมัติ</td><td>ทุก role</td></tr>
+<tr><td class="mono">POST /api/approve·reject/&lt;task&gt;/&lt;step&gt;</td><td>ตัดสินขั้นที่รอ</td><td>operator</td></tr>
+<tr><td class="mono">GET /api/vault/status</td><td>สถานะคลังหลักฐาน</td><td>operator</td></tr>
+</table>
+<div class="callout">ทุก call ใส่ header: <code class="mono">X-Desktop-Token: &lt;token&gt;</code> — 401 = ตรวจ token ก่อนเสมอ</div>
+
+<h2 id="c8">บทที่ 8 — ก้าวถัดไป</h2>
+<p>1. อ่าน trace ต่องาน: <code class="mono">data/traces/&lt;task_id&gt;.jsonl</code> — ทุกขั้นเก็บ observation/ความมั่นใจ/เวลาแยกชั้น</p>
+<p>2. งานต้องล็อกอิน: POST /api/login — ระบบเปิด Chrome ให้ล็อกอินจริง 1 ครั้ง → เก็บ profile ใช้ซ้ำ</p>
+<p>3. ลึกออกแบบทั้งระบบ: <code class="mono">codex-output/WO-018/designspec.md</code> (requirement/design/framework ทำซ้ำ + บทบาทองค์กร)</p>
+<p>4. ติดตั้ง Node ใหม่/จัดการสมาชิก: <code class="mono">provision/NODE-ADMIN-GUIDE-TH.md</code></p>
+
+<div class="sub" style="margin-top:34px">เอกสารจากของจริงทุกบรรทัด — benchmark 10/10 · เทสต์ 194/194 · live proof หลายชั้น · ผู้จัดทำ: Anti (Hermes) · ลงระเบียน coordination/codex-anti/</div>
+
+</div>
+<script>if (window.mermaid) { mermaid.initialize({startOnLoad:true, theme:'neutral', securityLevel:'strict'}); }</script>
+</body>
+</html>

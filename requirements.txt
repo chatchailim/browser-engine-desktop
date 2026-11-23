@@ -1,0 +1,10 @@
+# dependencies ทางการของ SPADA MyAI Harness (Browser Engine Desktop) — ปรับปรุงจากสภาพแวดล้อมผู้พัฒนาจริง (5 ต.ค. 2026)
+# ติดตั้ง: .venv/Scripts/pip.exe install -r requirements.txt
+# หมายเหตุ: playwright ต้อง "playwright install chromium" เพิ่ม (ทำให้แล้วใน provision_node.py ขั้น 5)
+requests>=2.31
+cryptography>=42
+jsonschema>=4.17
+playwright>=1.40
+comtypes>=1.4; sys_platform == "win32"
+pywin32>=306; sys_platform == "win32"
+Pillow>=10
